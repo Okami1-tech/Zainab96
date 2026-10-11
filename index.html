@@ -1,0 +1,928 @@
+import os
+
+html = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#05030b">
+<title>The Unwritten Thing</title>
+<style>
+  :root{
+    --serif: "Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,"Times New Roman",serif;
+    --sans: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --violet:#a06cff;
+    --pink:#ff9ecb;
+    --ink:#ece7f7;
+    --muted:#a89fc4;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;padding:0;height:100%;
+    background:#05030b;
+    color:var(--ink);
+    font-family:var(--serif);
+    overscroll-behavior:none;
+  }
+  body{overflow:hidden;}
+
+  /* ---------- ambient background ---------- */
+  #ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:
+    radial-gradient(120% 90% at 50% 0%, #140a26 0%, #0a0517 45%, #05030b 100%);}
+  #ambient::before{
+    content:"";position:absolute;top:-25%;left:-25%;width:90%;height:70%;
+    background:radial-gradient(circle at center, rgba(124,58,237,.32), transparent 68%);
+    filter:blur(30px);
+  }
+  #ambient::after{
+    content:"";position:absolute;bottom:-30%;right:-25%;width:95%;height:75%;
+    background:radial-gradient(circle at center, rgba(255,120,190,.20), transparent 68%);
+    filter:blur(34px);
+  }
+  .star{position:absolute;border-radius:50%;background:#fff;animation:twinkle 5s infinite ease-in-out;}
+  @keyframes twinkle{
+    0%,100%{opacity:.08;transform:scale(.7);}
+    50%{opacity:.85;transform:scale(1.15);}
+  }
+
+  #motes{position:fixed;inset:0;z-index:1;pointer-events:none;}
+
+  /* ---------- chapters ---------- */
+  #app{position:fixed;inset:0;z-index:2;}
+  .chapter{
+    position:absolute;inset:0;
+    overflow-y:auto;overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    opacity:0;visibility:hidden;
+    transform:translateY(16px);
+    transition:opacity .85s ease, transform .85s cubic-bezier(.2,.8,.3,1), visibility .85s;
+  }
+  .chapter.active{opacity:1;visibility:visible;transform:none;}
+
+  .chapter-inner{
+    min-height:100%;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    padding:calc(52px + env(safe-area-inset-top)) 24px calc(52px + env(safe-area-inset-bottom));
+    text-align:center;
+  }
+
+  .ch-num{
+    font-family:var(--sans);
+    font-size:.66rem;letter-spacing:.42em;text-transform:uppercase;
+    color:var(--violet);opacity:.85;margin-bottom:16px;display:block;
+  }
+  h2{
+    font-weight:400;
+    font-size:clamp(1.6rem,7vw,2.3rem);
+    letter-spacing:.06em;margin:0 0 18px;
+    color:#fff;
+    text-shadow:0 0 30px rgba(160,108,255,.45);
+  }
+  .ch-sub{
+    font-family:var(--sans);
+    font-size:.92rem;line-height:1.85;
+    color:var(--muted);max-width:34ch;margin:0 auto 34px;
+  }
+
+  /* ---------- intro ---------- */
+  .intro-line{
+    font-size:clamp(1.15rem,5.4vw,1.6rem);
+    line-height:1.75;letter-spacing:.02em;
+    margin:0 auto;max-width:26ch;
+    opacity:0;animation:fadeUp 1.5s ease forwards;
+  }
+  .intro-line:nth-child(1){animation-delay:.4s;}
+  .intro-line:nth-child(2){animation-delay:1.9s;color:var(--muted);font-size:clamp(1rem,4.6vw,1.3rem);}
+  .intro-line:nth-child(3){animation-delay:3.4s;color:#fff;text-shadow:0 0 34px rgba(255,158,203,.35);}
+  @keyframes fadeUp{
+    from{opacity:0;transform:translateY(18px);filter:blur(6px);}
+    to{opacity:1;transform:none;filter:blur(0);}
+  }
+
+  .btn{
+    appearance:none;border:1px solid rgba(180,140,255,.42);
+    background:linear-gradient(180deg, rgba(124,58,237,.30), rgba(124,58,237,.08));
+    color:#f2ecff;
+    font-family:var(--sans);font-weight:500;
+    font-size:.74rem;letter-spacing:.22em;text-transform:uppercase;
+    padding:17px 34px;border-radius:999px;min-height:50px;
+    cursor:pointer;
+    transition:transform .3s ease, box-shadow .4s ease, opacity .4s ease, border-color .4s ease;
+    box-shadow:0 0 26px rgba(139,92,246,.20), inset 0 0 22px rgba(160,108,255,.08);
+    opacity:0;animation:fadeUp 1.2s ease forwards;
+  }
+  .btn:active{transform:scale(.965);border-color:rgba(255,158,203,.7);}
+  .btn.locked{opacity:.28 !important;pointer-events:none;filter:saturate(.4);}
+  .btn.ghost{
+    background:transparent;border-color:rgba(180,140,255,.28);
+    box-shadow:none;color:var(--muted);
+  }
+  .intro-btn{animation-delay:5s;margin-top:52px;}
+
+  /* ---------- chapter 1 relics ---------- */
+  .relics{
+    display:grid;grid-template-columns:1fr 1fr;gap:16px;
+    width:100%;max-width:420px;margin:0 auto 26px;
+  }
+  .relic{
+    position:relative;
+    appearance:none;cursor:pointer;
+    background:linear-gradient(170deg, rgba(40,22,72,.72), rgba(14,8,28,.86));
+    border:1px solid rgba(150,110,240,.20);
+    border-radius:20px;
+    padding:22px 12px 18px;
+    min-height:126px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+    color:var(--muted);
+    transition:transform .4s cubic-bezier(.2,.8,.3,1), border-color .5s, box-shadow .5s, color .5s;
+    box-shadow:inset 0 0 30px rgba(90,50,160,.12);
+  }
+  .relic:active{transform:scale(.96);}
+  .relic svg{
+    width:40px;height:40px;stroke:currentColor;fill:none;
+    stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;
+    filter:drop-shadow(0 0 8px rgba(160,108,255,.55));
+    transition:all .5s ease;
+  }
+  .relic .rlabel{
+    font-family:var(--sans);
+    font-size:.63rem;letter-spacing:.26em;text-transform:uppercase;
+    transition:color .5s ease;
+  }
+  .relic.found{
+    color:var(--pink);
+    border-color:rgba(255,158,203,.55);
+    box-shadow:0 0 34px rgba(200,110,255,.28), inset 0 0 34px rgba(160,108,255,.16);
+  }
+  .relic.found svg{filter:drop-shadow(0 0 14px rgba(255,158,203,.85));}
+  .relic.found .rlabel{color:#fff;}
+  .relic.found::after{
+    content:"";position:absolute;top:12px;right:14px;
+    width:6px;height:6px;border-radius:50%;
+    background:var(--pink);box-shadow:0 0 12px var(--pink);
+  }
+
+  .progress{
+    font-family:var(--sans);font-size:.72rem;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--muted);opacity:.75;
+    margin:0 0 26px;min-height:1em;transition:color .6s;
+  }
+  .progress.done{color:var(--pink);opacity:1;}
+
+  /* memory overlay */
+  .overlay{
+    position:absolute;inset:0;z-index:20;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px;
+    background:rgba(4,2,10,.86);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    opacity:0;visibility:hidden;transition:opacity .5s ease, visibility .5s;
+  }
+  .overlay.open{opacity:1;visibility:visible;}
+  .ov-card{
+    width:100%;max-width:480px;
+    background:linear-gradient(165deg, rgba(44,24,80,.92), rgba(12,6,24,.96));
+    border:1px solid rgba(160,108,255,.28);
+    border-radius:24px;
+    padding:34px 26px 28px;
+    box-shadow:0 0 70px rgba(120,60,220,.30);
+    transform:translateY(16px) scale(.98);
+    transition:transform .55s cubic-bezier(.2,.8,.3,1);
+    max-height:82vh;overflow-y:auto;
+  }
+  .overlay.open .ov-card{transform:none;}
+  .ov-card h3{
+    font-weight:400;font-size:1.32rem;letter-spacing:.10em;
+    margin:10px 0 18px;color:#fff;
+    text-shadow:0 0 26px rgba(255,158,203,.4);
+  }
+  .ov-card p{
+    font-size:1rem;line-height:1.95;color:#d6cfe9;
+    margin:0 0 26px;text-align:left;
+  }
+  .ov-card .btn{opacity:1;animation:none;width:100%;}
+
+  /* ---------- chapter 2 canvas ---------- */
+  .canvas-chapter{overflow:hidden;}
+  #stars,#draw{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  #stars{z-index:0;}
+  #draw{z-index:1;touch-action:none;}
+  .canvas-ui{
+    position:absolute;inset:0;z-index:2;
+    display:flex;flex-direction:column;justify-content:space-between;
+    padding:calc(34px + env(safe-area-inset-top)) 22px calc(30px + env(safe-area-inset-bottom));
+    pointer-events:none;
+  }
+  .canvas-ui .top{text-align:center;}
+  .canvas-ui .top h2{font-size:clamp(1.4rem,6vw,1.9rem);margin-bottom:10px;}
+  .canvas-ui .top p{
+    font-family:var(--sans);font-size:.82rem;line-height:1.8;
+    color:var(--muted);max-width:32ch;margin:0 auto;
+  }
+  .canvas-ui .bottom{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+  .canvas-ui .btn{pointer-events:auto;opacity:1;animation:none;}
+  .hint{
+    font-family:var(--sans);font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--violet);opacity:.8;text-align:center;margin-top:14px;
+    transition:opacity 1s ease;
+  }
+  .hint.gone{opacity:0;}
+
+  /* ---------- chapter 3 name ---------- */
+  .name{
+    font-size:clamp(2.1rem,13.5vw,4.4rem);
+    letter-spacing:.10em;
+    margin:0 0 8px;
+    color:#fff;
+    text-shadow:0 0 40px rgba(180,120,255,.65), 0 0 90px rgba(255,140,200,.35);
+    line-height:1.1;
+  }
+  .name span{
+    display:inline-block;opacity:0;
+    transform:translateY(26px) scale(.86);
+  }
+  .chapter.active .name span{
+    animation:nameIn 1.15s cubic-bezier(.18,.85,.28,1) forwards;
+  }
+  @keyframes nameIn{
+    0%{opacity:0;transform:translateY(26px) scale(.86);filter:blur(12px);}
+    60%{opacity:1;filter:blur(0);}
+    100%{opacity:1;transform:none;filter:blur(0);}
+  }
+  .name-sub{
+    font-family:var(--sans);
+    font-size:.74rem;letter-spacing:.4em;text-transform:uppercase;
+    color:var(--pink);opacity:0;
+    margin:0 0 34px;
+  }
+  .chapter.active .name-sub{animation:fadeUp 1.4s ease 1.6s forwards;}
+  .name-msg{
+    font-size:1.02rem;line-height:2;color:#d4cce8;
+    max-width:30ch;margin:0 auto 40px;
+    opacity:0;
+  }
+  .chapter.active .name-msg{animation:fadeUp 1.5s ease 2.2s forwards;}
+
+  /* ---------- chapter 4 letter ---------- */
+  .letter-wrap{
+    justify-content:flex-start;text-align:left;
+    align-items:center;
+    padding-top:calc(64px + env(safe-area-inset-top));
+    padding-bottom:calc(64px + env(safe-area-inset-bottom));
+  }
+  .letter-inner{width:100%;max-width:600px;}
+  .letter-head{text-align:center;margin-bottom:40px;}
+  .letter{
+    font-size:1.03rem;line-height:2.05;color:#d3cbe6;
+  }
+  .letter p{
+    margin:0 0 24px;
+    opacity:0;transform:translateY(16px);
+    transition:opacity 1s ease, transform 1s cubic-bezier(.2,.8,.3,1);
+  }
+  .letter p.in{opacity:1;transform:none;}
+  .letter p.lead::first-letter{
+    font-size:2.6rem;line-height:1;
+    color:var(--pink);
+    float:left;padding:6px 12px 0 0;
+    text-shadow:0 0 22px rgba(255,158,203,.6);
+  }
+  .letter .sign{
+    margin-top:44px;
+    font-size:1.18rem;line-height:1.9;
+    color:#fff;text-align:right;
+    text-shadow:0 0 26px rgba(160,108,255,.5);
+  }
+  .letter-actions{text-align:center;margin-top:48px;}
+
+  /* ---------- chapter 5 finale ---------- */
+  .crown{
+    width:66px;height:auto;margin:0 auto 20px;display:block;
+    stroke:url(#crownGrad);fill:none;stroke-width:1.6;
+    stroke-linejoin:round;stroke-linecap:round;
+    filter:drop-shadow(0 0 16px rgba(200,140,255,.75));
+    opacity:0;
+  }
+  .chapter.active .crown{animation:fadeUp 1.6s ease .3s forwards;}
+  .queen{
+    font-size:clamp(1.9rem,10vw,3rem);
+    letter-spacing:.16em;
+    margin:0 0 30px;color:#fff;
+    text-shadow:0 0 40px rgba(255,158,203,.55), 0 0 100px rgba(160,108,255,.5);
+    opacity:0;
+  }
+  .chapter.active .queen{animation:fadeUp 1.6s ease .8s forwards;}
+  .heart{
+    width:64px;height:58px;margin:0 auto 40px;display:block;
+    stroke:rgba(255,158,203,.85);fill:none;stroke-width:1.1;
+    filter:drop-shadow(0 0 14px rgba(255,158,203,.55));
+    opacity:0;
+  }
+  .chapter.active .heart{
+    animation:heartIn 2s ease 1.5s forwards, beat 5.5s ease-in-out 3.5s infinite;
+  }
+  @keyframes heartIn{from{opacity:0;transform:scale(.9);}to{opacity:.92;transform:none;}}
+  @keyframes beat{0%,100%{transform:scale(1);opacity:.85;}50%{transform:scale(1.045);opacity:1;}}
+  .dua{
+    font-size:1.02rem;line-height:2.1;color:#d8d0ea;
+    max-width:32ch;margin:0 auto 38px;
+    opacity:0;
+  }
+  .chapter.active .dua{animation:fadeUp 1.8s ease 2.1s forwards;}
+  .final{
+    font-size:clamp(1rem,4.4vw,1.2rem);
+    line-height:2;color:#fff;max-width:30ch;margin:0 auto 14px;
+    text-shadow:0 0 30px rgba(160,108,255,.5);
+    opacity:0;
+  }
+  .chapter.active .final{animation:fadeUp 1.8s ease 3s forwards;}
+  .signature{
+    font-family:var(--sans);
+    font-size:.68rem;letter-spacing:.34em;text-transform:uppercase;
+    color:var(--muted);opacity:0;margin:44px 0 0;
+  }
+  .chapter.active .signature{animation:fadeUp 1.6s ease 3.9s forwards;}
+  .finale-actions{opacity:0;margin-top:38px;}
+  .chapter.active .finale-actions{animation:fadeUp 1.6s ease 4.4s forwards;}
+
+  @media (max-width:360px){
+    .relic{min-height:112px;padding:18px 8px 14px;}
+    .relic svg{width:34px;height:34px;}
+    .relic .rlabel{font-size:.56rem;letter-spacing:.18em;}
+  }
+</style>
+</head>
+<body>
+
+<div id="ambient"></div>
+<canvas id="motes"></canvas>
+
+<main id="app">
+
+  <!-- ============ INTRO ============ -->
+  <section class="chapter active" id="ch-intro">
+    <div class="chapter-inner">
+      <p class="intro-line">There is a thing I cannot name.</p>
+      <p class="intro-line">Not because I don't know what I feel.</p>
+      <p class="intro-line">Because the feeling became bigger than words.</p>
+      <button class="btn intro-btn" id="beginBtn">Enter</button>
+    </div>
+  </section>
+
+  <!-- ============ CHAPTER 1 ============ -->
+  <section class="chapter" id="ch1">
+    <div class="chapter-inner">
+      <span class="ch-num">Chapter One</span>
+      <h2>Four Little Memories</h2>
+      <p class="ch-sub">Before we knew what we were becoming, there were only small, ordinary moments. Touch each one.</p>
+
+      <div class="relics" id="relics">
+        <button class="relic" data-key="notes" aria-label="The Notes">
+          <svg viewBox="0 0 48 48"><rect x="13" y="7" width="22" height="34" rx="3.5"/><path d="M19 17h10M19 23h10M19 29h6"/></svg>
+          <span class="rlabel">The Notes</span>
+        </button>
+
+        <button class="relic" data-key="message" aria-label="The Message">
+          <svg viewBox="0 0 48 48"><path d="M41 21a6 6 0 0 0-6-6H13a6 6 0 0 0-6 6v10a6 6 0 0 0 6 6h2v7l9-7h11a6 6 0 0 0 6-6z"/></svg>
+          <span class="rlabel">The Message</span>
+        </button>
+
+        <button class="relic" data-key="reassurance" aria-label="The Reassurance">
+          <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="3.5"/><circle cx="24" cy="24" r="10" opacity=".65"/><circle cx="24" cy="24" r="16.5" opacity=".35"/></svg>
+          <span class="rlabel">The Reassurance</span>
+        </button>
+
+        <button class="relic" data-key="unexpected" aria-label="The Unexpected">
+          <svg viewBox="0 0 48 48"><path d="M24 6c1.6 8.2 4.2 10.8 12 12-7.8 1.6-10.4 4.2-12 12-1.6-7.8-4.2-10.4-12-12 7.8-1.2 10.4-3.8 12-12z"/><path d="M37 32.5c.6 3 1.5 3.9 4.5 4.5-3 .6-3.9 1.5-4.5 4.5-.6-3-1.5-3.9-4.5-4.5 3-.6 3.9-1.5 4.5-4.5z" opacity=".6"/></svg>
+          <span class="rlabel">The Unexpected</span>
+        </button>
+      </div>
+
+      <p class="progress" id="memProgress">0 of 4 remembered</p>
+      <button class="btn locked" id="toCh2" disabled>Continue</button>
+    </div>
+
+    <div class="overlay" id="overlay">
+      <div class="ov-card">
+        <span class="ch-num" id="ovIndex">Memory</span>
+        <h3 id="ovTitle">Title</h3>
+        <p id="ovText">Text</p>
+        <button class="btn" id="ovClose">Close</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CHAPTER 2 ============ -->
+  <section class="chapter canvas-chapter" id="ch2">
+    <canvas id="stars"></canvas>
+    <canvas id="draw"></canvas>
+    <div class="canvas-ui">
+      <div class="top">
+        <span class="ch-num">Chapter Two</span>
+        <h2>The Path Without Words</h2>
+        <p>Draw with your finger. Let the line go wherever it wants — it does not have to be straight.</p>
+        <p class="hint" id="hint">Touch the dark and move</p>
+      </div>
+      <div class="bottom">
+        <button class="btn ghost" id="clearBtn">Begin the path again</button>
+        <button class="btn" id="toCh3">Continue</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CHAPTER 3 ============ -->
+  <section class="chapter" id="ch3">
+    <div class="chapter-inner">
+      <span class="ch-num">Chapter Three</span>
+      <h2 class="name" id="nameReveal"></h2>
+      <p class="name-sub">Hayati &nbsp;·&nbsp; My Queen</p>
+      <p class="name-msg">Your name stopped being only a name a long time ago. It became a feeling I carry quietly through my days, and a place inside my heart where only you live.</p>
+      <button class="btn" id="toCh4">Read the letter</button>
+    </div>
+  </section>
+
+  <!-- ============ CHAPTER 4 ============ -->
+  <section class="chapter" id="ch4">
+    <div class="chapter-inner letter-wrap">
+      <div class="letter-inner">
+        <div class="letter-head">
+          <span class="ch-num">Chapter Four</span>
+          <h2>A Letter</h2>
+        </div>
+
+        <div class="letter" id="letterBody">
+          <p class="lead">Sarauniya, I don't know exactly when you stopped being someone I shared a course with and became someone I think about before I sleep. It happened quietly. It happened the way light arrives in a room — you never notice the moment, only that everything looks different afterwards.</p>
+
+          <p>We were course mates who barely knew each other. Then a group assignment put us in the same space, and somehow, in the middle of all that work, we started to become close. I asked you for your notes because I hadn't copied mine and I only wanted to photograph them. Such a small thing. I didn't know I was reaching for something much bigger.</p>
+
+          <p>Then came the message about your stolen bag. I remember telling you to stay calm, and reminding you that Allah knows best. I wasn't trying to sound wise. I just didn't want your heart to be heavy on its own. Looking back, I think that was the first time I realised how much your peace had started to matter to me.</p>
+
+          <p>And you — you encouraged me to study for STA121. You pushed me when I was tired, and reminded me what I was working for. You may think that was small. It wasn't. Someone who cares about your future is telling you something without saying it out loud.</p>
+
+          <p>Your care means more to me than I know how to explain. Not the loud kind — the quiet kind. The kind that checks in. The kind that says "go and read." The kind that stays.</p>
+
+          <p>I appreciate who you are. Your patience. Your softness. The strength that shows up even when you are tired. The way you carry your faith. I don't admire you only for what you give me — I admire you for who you are when nobody is watching.</p>
+
+          <p>I hope we keep growing together: in patience, in honesty, in understanding, in kindness, and in faith. I hope we learn to disagree gently and to listen properly. I hope we both become better people for having known each other, whether the road stays smooth or not.</p>
+
+          <p>And I pray — sincerely, quietly — that if Allah writes marriage for us, insha'Allah, He makes our home one of sakinah. Full of mercy. Full of respect. Full of laughter. Full of barakah. I am not asking for a perfect life. I am asking for something real, something lasting, something pleasing to Him.</p>
+
+          <p>We can start small. We don't need everything figured out today. I believe two people can begin with very little and still build something beautiful — if Allah is in it, and if they are honest with each other.</p>
+
+          <p class="sign">With love,<br>Muhammad 💜</p>
+        </div>
+
+        <div class="letter-actions">
+          <button class="btn" id="toCh5">One more thing</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CHAPTER 5 ============ -->
+  <section class="chapter" id="ch5">
+    <div class="chapter-inner">
+      <span class="ch-num">Chapter Five</span>
+
+      <svg class="crown" viewBox="0 0 64 44" aria-hidden="true">
+        <defs>
+          <linearGradient id="crownGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#b98cff"/>
+            <stop offset="100%" stop-color="#ff9ecb"/>
+          </linearGradient>
+        </defs>
+        <path d="M7 33 L11 13 L22 23 L32 7 L42 23 L53 13 L57 33 Z"/>
+        <path d="M8 38 h48"/>
+      </svg>
+
+      <h2 class="queen">MY QUEEN</h2>
+
+      <svg class="heart" viewBox="0 0 32 30" aria-hidden="true">
+        <path d="M16 27.4C16 27.4 3 18.8 3 10.9 3 6.5 6.4 3 10.6 3c2.6 0 4.6 1.3 5.4 3.3C16.8 4.3 18.8 3 21.4 3 25.6 3 29 6.5 29 10.9 29 18.8 16 27.4 16 27.4z"/>
+      </svg>
+
+      <p class="dua">Ya Allah, protect her heart. Ease every worry she carries quietly. Place goodness on her path and let her never walk it alone. Grant her peace in her chest, light in her days, and a future better than anything she has ever prayed for. Ameen.</p>
+
+      <p class="final">There is a thing I cannot name.<br>Now you know what it is.</p>
+
+      <div class="finale-actions">
+        <button class="btn ghost" id="replayBtn">Begin again</button>
+      </div>
+
+      <p class="signature">For Sarauniya &nbsp;·&nbsp; From Muhammad</p>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- ambient stars ---------- */
+  var ambient = document.getElementById('ambient');
+  var starFrag = document.createDocumentFragment();
+  for (var i = 0; i < 80; i++) {
+    var s = document.createElement('div');
+    s.className = 'star';
+    var size = (Math.random() * 1.9 + 0.6).toFixed(2);
+    s.style.width = size + 'px';
+    s.style.height = size + 'px';
+    s.style.left = (Math.random() * 100).toFixed(2) + '%';
+    s.style.top = (Math.random() * 100).toFixed(2) + '%';
+    s.style.animationDelay = (Math.random() * 5).toFixed(2) + 's';
+    s.style.animationDuration = (3.5 + Math.random() * 4).toFixed(2) + 's';
+    starFrag.appendChild(s);
+  }
+  ambient.appendChild(starFrag);
+
+  /* ---------- floating motes ---------- */
+  var motes = document.getElementById('motes');
+  var mctx = motes.getContext('2d');
+  var mList = [], mw = 0, mh = 0, mdpr = 1;
+
+  function sizeMotes() {
+    mdpr = Math.min(window.devicePixelRatio || 1, 2);
+    mw = window.innerWidth;
+    mh = window.innerHeight;
+    motes.width = Math.floor(mw * mdpr);
+    motes.height = Math.floor(mh * mdpr);
+    motes.style.width = mw + 'px';
+    motes.style.height = mh + 'px';
+    mctx.setTransform(mdpr, 0, 0, mdpr, 0, 0);
+  }
+  function buildMotes() {
+    mList = [];
+    var n = window.innerWidth < 400 ? 18 : 26;
+    for (var i = 0; i < n; i++) {
+      mList.push({
+        x: Math.random() * mw,
+        y: Math.random() * mh,
+        r: 0.7 + Math.random() * 1.7,
+        sp: 0.10 + Math.random() * 0.32,
+        a: 0.10 + Math.random() * 0.42,
+        p: Math.random() * Math.PI * 2,
+        hue: 262 + Math.random() * 58
+      });
+    }
+  }
+  function motesLoop() {
+    mctx.clearRect(0, 0, mw, mh);
+    for (var i = 0; i < mList.length; i++) {
+      var m = mList[i];
+      m.y -= m.sp;
+      m.p += 0.008;
+      if (m.y < -12) { m.y = mh + 12; m.x = Math.random() * mw; }
+      var x = m.x + Math.sin(m.p) * 9;
+      var col = 'hsl(' + m.hue + ',95%,78%)';
+      mctx.beginPath();
+      mctx.globalAlpha = m.a;
+      mctx.fillStyle = col;
+      mctx.shadowColor = col;
+      mctx.shadowBlur = 12;
+      mctx.arc(x, m.y, m.r, 0, Math.PI * 2);
+      mctx.fill();
+    }
+    mctx.globalAlpha = 1;
+    mctx.shadowBlur = 0;
+    requestAnimationFrame(motesLoop);
+  }
+  sizeMotes();
+  buildMotes();
+  requestAnimationFrame(motesLoop);
+
+  window.addEventListener('resize', function () {
+    sizeMotes();
+    buildMotes();
+    sizeStars();
+    sizeDraw();
+  });
+
+  /* ---------- chapter engine ---------- */
+  var chapters = Array.prototype.slice.call(document.querySelectorAll('.chapter'));
+
+  function show(id) {
+    var target = document.getElementById(id);
+    if (!target) return;
+    for (var i = 0; i < chapters.length; i++) {
+      chapters[i].classList.toggle('active', chapters[i] === target);
+    }
+    target.scrollTop = 0;
+    if (id === 'ch2') {
+      window.requestAnimationFrame(function () {
+        sizeStars();
+        sizeDraw();
+        drawStars();
+      });
+    }
+  }
+
+  document.getElementById('beginBtn').addEventListener('click', function () { show('ch1'); });
+
+  /* ---------- chapter 1: memories ---------- */
+  var memories = {
+    notes: {
+      index: 'Memory One',
+      title: 'The Notes',
+      text: 'We were course mates who barely knew each other. Then a group assignment put us on the same page — almost literally. I asked you for your notes because I had not copied mine, and I only wanted to photograph them. That was all. Or so I told myself. An ordinary request, made in an ordinary moment, that quietly became the first line of everything.'
+    },
+    message: {
+      index: 'Memory Two',
+      title: 'The Message',
+      text: 'Then one day, a message came from you. Your bag had been stolen. You told me what happened, and even through words on a screen I could feel how unsettled you were. We were still just two people who shared a course. But your message reached me, and I answered. That is how it began.'
+    },
+    reassurance: {
+      index: 'Memory Three',
+      title: 'The Reassurance',
+      text: 'I told you to stay calm. I reminded you that Allah knows best. I did not say anything clever or impressive — I only wanted your heart to be still. You probably did not think about it again. But that small moment stayed with me, because it was the first time I felt I wanted to carry a little of your worry for you.'
+    },
+    unexpected: {
+      index: 'Memory Four',
+      title: 'The Unexpected',
+      text: 'Neither of us knew. Not in that classroom, not in that message, not in those quiet words of comfort. We did not know that Allah was already writing something out of pieces we thought were nothing at all. Ordinary moments. The beginning of something meaningful.'
+    }
+  };
+
+  var found = {};
+  var relics = Array.prototype.slice.call(document.querySelectorAll('.relic'));
+  var overlay = document.getElementById('overlay');
+  var ovIndex = document.getElementById('ovIndex');
+  var ovTitle = document.getElementById('ovTitle');
+  var ovText = document.getElementById('ovText');
+  var ovClose = document.getElementById('ovClose');
+  var memProgress = document.getElementById('memProgress');
+  var toCh2 = document.getElementById('toCh2');
+  var lastFocused = null;
+
+  function openMemory(key, el) {
+    var m = memories[key];
+    if (!m) return;
+    lastFocused = el;
+    ovIndex.textContent = m.index;
+    ovTitle.textContent = m.title;
+    ovText.textContent = m.text;
+    overlay.classList.add('open');
+    ovClose.focus();
+    if (!found[key]) {
+      found[key] = true;
+      el.classList.add('found');
+      updateProgress();
+    }
+  }
+
+  function closeMemory() {
+    overlay.classList.remove('open');
+    if (lastFocused && lastFocused.focus) lastFocused.focus();
+  }
+
+  function updateProgress() {
+    var count = Object.keys(found).length;
+    if (count >= 4) {
+      memProgress.textContent = 'All four remembered';
+      memProgress.classList.add('done');
+      toCh2.classList.remove('locked');
+      toCh2.disabled = false;
+    } else {
+      memProgress.textContent = count + ' of 4 remembered';
+    }
+  }
+
+  relics.forEach(function (el) {
+    el.addEventListener('click', function () { openMemory(el.getAttribute('data-key'), el); });
+  });
+  ovClose.addEventListener('click', closeMemory);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeMemory(); });
+  toCh2.addEventListener('click', function () { show('ch2'); });
+
+  /* ---------- chapter 2: drawing ---------- */
+  var starsCanvas = document.getElementById('stars');
+  var sctx = starsCanvas.getContext('2d');
+  var drawCanvas = document.getElementById('draw');
+  var dctx = drawCanvas.getContext('2d');
+  var cw = 0, ch = 0, cdpr = 1;
+
+  var starSeeds = [];
+  for (var k = 0; k < 130; k++) {
+    starSeeds.push({
+      x: Math.random(),
+      y: Math.random(),
+      r: 0.4 + Math.random() * 1.5,
+      a: 0.15 + Math.random() * 0.75,
+      hue: 250 + Math.random() * 90
+    });
+  }
+
+  function sizeStars() {
+    var rect = starsCanvas.parentElement.getBoundingClientRect();
+    cw = rect.width || window.innerWidth;
+    ch = rect.height || window.innerHeight;
+    cdpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    starsCanvas.width = Math.floor(cw * cdpr);
+    starsCanvas.height = Math.floor(ch * cdpr);
+    sctx.setTransform(cdpr, 0, 0, cdpr, 0, 0);
+
+    drawCanvas.width = Math.floor(cw * cdpr);
+    drawCanvas.height = Math.floor(ch * cdpr);
+    dctx.setTransform(cdpr, 0, 0, cdpr, 0, 0);
+  }
+
+  function drawStars() {
+    if (!cw || !ch) return;
+    sctx.clearRect(0, 0, cw, ch);
+    var g = sctx.createRadialGradient(cw * 0.5, ch * 0.15, 0, cw * 0.5, ch * 0.15, ch * 0.9);
+    g.addColorStop(0, 'rgba(60,28,110,0.55)');
+    g.addColorStop(0.55, 'rgba(18,8,36,0.55)');
+    g.addColorStop(1, 'rgba(5,3,11,0.9)');
+    sctx.fillStyle = g;
+    sctx.fillRect(0, 0, cw, ch);
+
+    for (var i = 0; i < starSeeds.length; i++) {
+      var st = starSeeds[i];
+      var col = 'hsl(' + st.hue + ',85%,82%)';
+      sctx.beginPath();
+      sctx.globalAlpha = st.a;
+      sctx.fillStyle = col;
+      sctx.shadowColor = col;
+      sctx.shadowBlur = 8;
+      sctx.arc(st.x * cw, st.y * ch, st.r, 0, Math.PI * 2);
+      sctx.fill();
+    }
+    sctx.globalAlpha = 1;
+    sctx.shadowBlur = 0;
+  }
+
+  var drawing = false, lastPt = null, dist = 0;
+
+  function getPos(e) {
+    var r = drawCanvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  function paintSegment(a, b) {
+    var d = Math.sqrt((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y));
+    dist += d;
+    var hue = 272 + 40 * Math.sin(dist * 0.011);
+    var col = 'hsl(' + hue.toFixed(1) + ',95%,73%)';
+
+    dctx.lineCap = 'round';
+    dctx.lineJoin = 'round';
+    dctx.shadowColor = col;
+
+    dctx.globalAlpha = 0.95;
+    dctx.shadowBlur = 18;
+    dctx.lineWidth = 5.5;
+    dctx.strokeStyle = col;
+    dctx.beginPath();
+    dctx.moveTo(a.x, a.y);
+    dctx.lineTo(b.x, b.y);
+    dctx.stroke();
+
+    dctx.globalAlpha = 0.30;
+    dctx.shadowBlur = 36;
+    dctx.lineWidth = 13;
+    dctx.beginPath();
+    dctx.moveTo(a.x, a.y);
+    dctx.lineTo(b.x, b.y);
+    dctx.stroke();
+
+    dctx.globalAlpha = 1;
+    dctx.shadowBlur = 0;
+  }
+
+  function paintDot(p) {
+    var col = 'hsl(280,95%,75%)';
+    dctx.beginPath();
+    dctx.globalAlpha = 0.95;
+    dctx.fillStyle = col;
+    dctx.shadowColor = col;
+    dctx.shadowBlur = 20;
+    dctx.arc(p.x, p.y, 3.2, 0, Math.PI * 2);
+    dctx.fill();
+    dctx.globalAlpha = 1;
+    dctx.shadowBlur = 0;
+  }
+
+  var hintEl = document.getElementById('hint');
+
+  drawCanvas.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    drawing = true;
+    if (drawCanvas.setPointerCapture) {
+      try { drawCanvas.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+    lastPt = getPos(e);
+    paintDot(lastPt);
+    hintEl.classList.add('gone');
+  });
+
+  drawCanvas.addEventListener('pointermove', function (e) {
+    if (!drawing) return;
+    e.preventDefault();
+    var p = getPos(e);
+    if (lastPt) paintSegment(lastPt, p);
+    lastPt = p;
+  });
+
+  function endDraw() { drawing = false; lastPt = null; }
+  drawCanvas.addEventListener('pointerup', endDraw);
+  drawCanvas.addEventListener('pointercancel', endDraw);
+  drawCanvas.addEventListener('pointerleave', function () { if (drawing) endDraw(); });
+
+  document.getElementById('clearBtn').addEventListener('click', function () {
+    dctx.clearRect(0, 0, cw, ch);
+    dist = 0;
+  });
+  document.getElementById('toCh3').addEventListener('click', function () { show('ch3'); });
+
+  /* ---------- chapter 3: name ---------- */
+  var nameEl = document.getElementById('nameReveal');
+  var nameStr = 'SARAUNIYA';
+  var html = '';
+  for (var n = 0; n < nameStr.length; n++) {
+    html += '<span style="animation-delay:' + (n * 0.13).toFixed(2) + 's">' + nameStr.charAt(n) + '</span>';
+  }
+  nameEl.innerHTML = html;
+
+  document.getElementById('toCh4').addEventListener('click', function () { show('ch4'); });
+
+  /* ---------- chapter 4: letter reveal ---------- */
+  var ch4 = document.getElementById('ch4');
+  var letterParas = Array.prototype.slice.call(document.querySelectorAll('#letterBody p'));
+  var letterObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in');
+        letterObserver.unobserve(entry.target);
+      }
+    });
+  }, { root: ch4, threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+
+  letterParas.forEach(function (p, idx) {
+    p.style.transitionDelay = Math.min(idx * 0.04, 0.24) + 's';
+    letterObserver.observe(p);
+  });
+
+  document.getElementById('toCh5').addEventListener('click', function () { show('ch5'); });
+
+  /* ---------- chapter 5: replay ---------- */
+  document.getElementById('replayBtn').addEventListener('click', function () {
+    found = {};
+    relics.forEach(function (r) { r.classList.remove('found'); });
+    memProgress.textContent = '0 of 4 remembered';
+    memProgress.classList.remove('done');
+    toCh2.classList.add('locked');
+    toCh2.disabled = true;
+    dctx.clearRect(0, 0, cw, ch);
+    dist = 0;
+    hintEl.classList.remove('gone');
+    letterParas.forEach(function (p) { p.classList.remove('in'); letterObserver.observe(p); });
+    ch4.scrollTop = 0;
+    show('ch-intro');
+  });
+
+  /* ---------- initial sizing ---------- */
+  window.requestAnimationFrame(function () {
+    sizeStars();
+    drawStars();
+  });
+
+  window.addEventListener('orientationchange', function () {
+    setTimeout(function () {
+      sizeStars();
+      drawStars();
+    }, 260);
+  });
+
+})();
+</script>
+</body>
+</html>
+"""
+
+paths = []
+for p in ["/mnt/user-data/outputs/the_unwritten_thing_for_sarauniya.html",
+          os.path.join(os.getcwd(), "the_unwritten_thing_for_sarauniya.html")]:
+    try:
+        d = os.path.dirname(p)
+        if d:
+            os.makedirs(d, exist_ok=True)
+        with open(p, "w", encoding="utf-8") as f:
+            f.write(html)
+        paths.append(p)
+    except Exception as e:
+        print("skip", p, e)
+
+for p in paths:
+    print(p, os.path.getsize(p), "bytes")
+
+# quick sanity checks
+checks = {
+    "SARAUNIYA": "SARAUNIYA" in html,
+    "Muhammad signature": "With love,<br>Muhammad" in html,
+    "STA121": "STA121" in html,
+    "opening line": "There is a thing I cannot name." in html,
+    "ch5": "MY QUEEN" in html,
+}
+print(checks)
