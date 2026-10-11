@@ -1,928 +1,253 @@
-import os
-
-html = r"""<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#05030b">
-<title>The Unwritten Thing</title>
+<meta name="theme-color" content="#090711">
+<title>The Unwritten Thing — For Sarauniya</title>
 <style>
-  :root{
-    --serif: "Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,"Times New Roman",serif;
-    --sans: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-    --violet:#a06cff;
-    --pink:#ff9ecb;
-    --ink:#ece7f7;
-    --muted:#a89fc4;
-  }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{
-    margin:0;padding:0;height:100%;
-    background:#05030b;
-    color:var(--ink);
-    font-family:var(--serif);
-    overscroll-behavior:none;
-  }
-  body{overflow:hidden;}
+:root{--bg:#090711;--panel:#151020;--ink:#f7f1ff;--muted:#b9adc9;--violet:#b38aff;--pink:#ff9bcf;--gold:#e7ceaa}
+*{box-sizing:border-box}
+html{background:var(--bg);scroll-behavior:smooth}
+body{margin:0;color:var(--ink);font-family:Georgia,"Times New Roman",serif;background:radial-gradient(ellipse at 50% -20%,#34204f 0%,#130e20 42%,#090711 78%);min-height:100vh;overflow-x:hidden}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--pink);outline-offset:4px}
+#sky{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;opacity:.62;z-index:0}
+.shell{position:relative;z-index:1;max-width:760px;margin:auto;padding:clamp(22px,6vw,54px) 20px 50px;min-height:100vh}
+.kicker{font:11px/1.5 system-ui,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:#c8afdF;text-align:center}
+.progress{height:2px;background:#ffffff12;margin:18px auto 38px;max-width:240px;overflow:hidden}
+.progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--violet),var(--pink));transition:width .6s}
+.chapter{display:none;animation:arrive .8s ease both}
+.chapter.active{display:block}
+@keyframes arrive{from{opacity:0;transform:translateY(14px);filter:blur(4px)}to{opacity:1;transform:none;filter:blur(0)}}
+h1,h2,p{margin-top:0}
+h1{font-weight:normal;font-size:clamp(36px,9vw,70px);line-height:1.02;letter-spacing:-.04em;text-align:center;margin:30px 0 24px}
+h2{font-weight:normal;font-size:clamp(28px,7vw,44px);line-height:1.1;letter-spacing:-.025em}
+.lede{font-size:clamp(18px,4.8vw,23px);line-height:1.7;color:#e7ddef;text-align:center;max-width:570px;margin:0 auto 28px}
+.muted{color:var(--muted);line-height:1.8}
+.center{text-align:center}
+.italic{font-style:italic;color:#e8d9fa}
+.eyebrow{font:10px system-ui,sans-serif;letter-spacing:.25em;text-transform:uppercase;color:var(--pink)}
+.rule{width:48px;height:1px;background:linear-gradient(90deg,var(--violet),var(--pink));margin:28px auto}
+.primary,.quiet{border-radius:999px;min-height:50px;padding:13px 23px;border:1px solid #c4a1ff66;background:linear-gradient(120deg,#67459c55,#b06b9d22);box-shadow:0 0 28px #8f5bca15;transition:transform .2s,border-color .2s}
+.primary:hover,.quiet:hover{transform:translateY(-2px);border-color:#e4c9ff}
+.quiet{background:transparent;border-color:#ffffff26;color:#d5c9e2}
+.actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:30px 0}
+.opening-mark{height:76px;width:76px;border:1px solid #bda0ec55;border-radius:50%;margin:42px auto 26px;display:grid;place-items:center;position:relative}
+.opening-mark:before,.opening-mark:after{content:"";position:absolute;inset:9px;border:1px solid #edb8dc3a;border-radius:50%}
+.opening-mark:after{inset:-8px;border-color:#bda0ec20}
+.opening-mark span{font-size:27px;color:#e8c7ff}
+.memories{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:28px 0}
+.memory{position:relative;text-align:left;min-height:145px;border:1px solid #cdb2f32a;border-radius:17px;padding:18px;background:linear-gradient(145deg,#21162fbb,#100d19e8);overflow:hidden}
+.memory:before{content:"";position:absolute;inset:auto -25px -55px auto;width:110px;height:110px;border-radius:50%;background:#b58aff12;filter:blur(3px)}
+.memory .num{font:10px system-ui,sans-serif;letter-spacing:.2em;color:var(--pink)}
+.memory strong{display:block;font-size:clamp(17px,4vw,21px);font-weight:normal;margin:15px 0 8px}
+.memory small{color:#b9adc9;font:12px/1.5 system-ui,sans-serif}
+.memory.done{border-color:#d6b6ff99;background:linear-gradient(145deg,#38224f,#171020)}
+.memory.done small{color:#e9d6ff}
+.memory:active{transform:scale(.985)}
+.reveal{display:none;border:1px solid #d2b5f32c;border-radius:18px;background:#100c18cc;padding:23px 21px;line-height:1.85;font-size:18px;animation:arrive .5s ease}
+.reveal.show{display:block}
+.reveal .eyebrow{display:block;margin-bottom:12px}
+.hint{font:12px/1.6 system-ui,sans-serif;color:#a99ab9;text-align:center}
+#constellationCanvas{width:100%;height:clamp(300px,64vh,480px);display:block;border:1px solid #c9a4ff33;border-radius:20px;background:radial-gradient(ellipse at 50% 55%,#28173c 0%,#100d1b 55%,#090711 100%);touch-action:none;box-shadow:inset 0 0 50px #0008}
+.canvas-wrap{position:relative}
+.canvas-label{position:absolute;top:15px;left:0;right:0;text-align:center;font:10px system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#a99ab9;pointer-events:none}
 
-  /* ---------- ambient background ---------- */
-  #ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:
-    radial-gradient(120% 90% at 50% 0%, #140a26 0%, #0a0517 45%, #05030b 100%);}
-  #ambient::before{
-    content:"";position:absolute;top:-25%;left:-25%;width:90%;height:70%;
-    background:radial-gradient(circle at center, rgba(124,58,237,.32), transparent 68%);
-    filter:blur(30px);
-  }
-  #ambient::after{
-    content:"";position:absolute;bottom:-30%;right:-25%;width:95%;height:75%;
-    background:radial-gradient(circle at center, rgba(255,120,190,.20), transparent 68%);
-    filter:blur(34px);
-  }
-  .star{position:absolute;border-radius:50%;background:#fff;animation:twinkle 5s infinite ease-in-out;}
-  @keyframes twinkle{
-    0%,100%{opacity:.08;transform:scale(.7);}
-    50%{opacity:.85;transform:scale(1.15);}
-  }
-
-  #motes{position:fixed;inset:0;z-index:1;pointer-events:none;}
-
-  /* ---------- chapters ---------- */
-  #app{position:fixed;inset:0;z-index:2;}
-  .chapter{
-    position:absolute;inset:0;
-    overflow-y:auto;overflow-x:hidden;
-    -webkit-overflow-scrolling:touch;
-    opacity:0;visibility:hidden;
-    transform:translateY(16px);
-    transition:opacity .85s ease, transform .85s cubic-bezier(.2,.8,.3,1), visibility .85s;
-  }
-  .chapter.active{opacity:1;visibility:visible;transform:none;}
-
-  .chapter-inner{
-    min-height:100%;
-    display:flex;flex-direction:column;
-    align-items:center;justify-content:center;
-    padding:calc(52px + env(safe-area-inset-top)) 24px calc(52px + env(safe-area-inset-bottom));
-    text-align:center;
-  }
-
-  .ch-num{
-    font-family:var(--sans);
-    font-size:.66rem;letter-spacing:.42em;text-transform:uppercase;
-    color:var(--violet);opacity:.85;margin-bottom:16px;display:block;
-  }
-  h2{
-    font-weight:400;
-    font-size:clamp(1.6rem,7vw,2.3rem);
-    letter-spacing:.06em;margin:0 0 18px;
-    color:#fff;
-    text-shadow:0 0 30px rgba(160,108,255,.45);
-  }
-  .ch-sub{
-    font-family:var(--sans);
-    font-size:.92rem;line-height:1.85;
-    color:var(--muted);max-width:34ch;margin:0 auto 34px;
-  }
-
-  /* ---------- intro ---------- */
-  .intro-line{
-    font-size:clamp(1.15rem,5.4vw,1.6rem);
-    line-height:1.75;letter-spacing:.02em;
-    margin:0 auto;max-width:26ch;
-    opacity:0;animation:fadeUp 1.5s ease forwards;
-  }
-  .intro-line:nth-child(1){animation-delay:.4s;}
-  .intro-line:nth-child(2){animation-delay:1.9s;color:var(--muted);font-size:clamp(1rem,4.6vw,1.3rem);}
-  .intro-line:nth-child(3){animation-delay:3.4s;color:#fff;text-shadow:0 0 34px rgba(255,158,203,.35);}
-  @keyframes fadeUp{
-    from{opacity:0;transform:translateY(18px);filter:blur(6px);}
-    to{opacity:1;transform:none;filter:blur(0);}
-  }
-
-  .btn{
-    appearance:none;border:1px solid rgba(180,140,255,.42);
-    background:linear-gradient(180deg, rgba(124,58,237,.30), rgba(124,58,237,.08));
-    color:#f2ecff;
-    font-family:var(--sans);font-weight:500;
-    font-size:.74rem;letter-spacing:.22em;text-transform:uppercase;
-    padding:17px 34px;border-radius:999px;min-height:50px;
-    cursor:pointer;
-    transition:transform .3s ease, box-shadow .4s ease, opacity .4s ease, border-color .4s ease;
-    box-shadow:0 0 26px rgba(139,92,246,.20), inset 0 0 22px rgba(160,108,255,.08);
-    opacity:0;animation:fadeUp 1.2s ease forwards;
-  }
-  .btn:active{transform:scale(.965);border-color:rgba(255,158,203,.7);}
-  .btn.locked{opacity:.28 !important;pointer-events:none;filter:saturate(.4);}
-  .btn.ghost{
-    background:transparent;border-color:rgba(180,140,255,.28);
-    box-shadow:none;color:var(--muted);
-  }
-  .intro-btn{animation-delay:5s;margin-top:52px;}
-
-  /* ---------- chapter 1 relics ---------- */
-  .relics{
-    display:grid;grid-template-columns:1fr 1fr;gap:16px;
-    width:100%;max-width:420px;margin:0 auto 26px;
-  }
-  .relic{
-    position:relative;
-    appearance:none;cursor:pointer;
-    background:linear-gradient(170deg, rgba(40,22,72,.72), rgba(14,8,28,.86));
-    border:1px solid rgba(150,110,240,.20);
-    border-radius:20px;
-    padding:22px 12px 18px;
-    min-height:126px;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
-    color:var(--muted);
-    transition:transform .4s cubic-bezier(.2,.8,.3,1), border-color .5s, box-shadow .5s, color .5s;
-    box-shadow:inset 0 0 30px rgba(90,50,160,.12);
-  }
-  .relic:active{transform:scale(.96);}
-  .relic svg{
-    width:40px;height:40px;stroke:currentColor;fill:none;
-    stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;
-    filter:drop-shadow(0 0 8px rgba(160,108,255,.55));
-    transition:all .5s ease;
-  }
-  .relic .rlabel{
-    font-family:var(--sans);
-    font-size:.63rem;letter-spacing:.26em;text-transform:uppercase;
-    transition:color .5s ease;
-  }
-  .relic.found{
-    color:var(--pink);
-    border-color:rgba(255,158,203,.55);
-    box-shadow:0 0 34px rgba(200,110,255,.28), inset 0 0 34px rgba(160,108,255,.16);
-  }
-  .relic.found svg{filter:drop-shadow(0 0 14px rgba(255,158,203,.85));}
-  .relic.found .rlabel{color:#fff;}
-  .relic.found::after{
-    content:"";position:absolute;top:12px;right:14px;
-    width:6px;height:6px;border-radius:50%;
-    background:var(--pink);box-shadow:0 0 12px var(--pink);
-  }
-
-  .progress{
-    font-family:var(--sans);font-size:.72rem;letter-spacing:.22em;
-    text-transform:uppercase;color:var(--muted);opacity:.75;
-    margin:0 0 26px;min-height:1em;transition:color .6s;
-  }
-  .progress.done{color:var(--pink);opacity:1;}
-
-  /* memory overlay */
-  .overlay{
-    position:absolute;inset:0;z-index:20;
-    display:flex;align-items:center;justify-content:center;
-    padding:24px;
-    background:rgba(4,2,10,.86);
-    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-    opacity:0;visibility:hidden;transition:opacity .5s ease, visibility .5s;
-  }
-  .overlay.open{opacity:1;visibility:visible;}
-  .ov-card{
-    width:100%;max-width:480px;
-    background:linear-gradient(165deg, rgba(44,24,80,.92), rgba(12,6,24,.96));
-    border:1px solid rgba(160,108,255,.28);
-    border-radius:24px;
-    padding:34px 26px 28px;
-    box-shadow:0 0 70px rgba(120,60,220,.30);
-    transform:translateY(16px) scale(.98);
-    transition:transform .55s cubic-bezier(.2,.8,.3,1);
-    max-height:82vh;overflow-y:auto;
-  }
-  .overlay.open .ov-card{transform:none;}
-  .ov-card h3{
-    font-weight:400;font-size:1.32rem;letter-spacing:.10em;
-    margin:10px 0 18px;color:#fff;
-    text-shadow:0 0 26px rgba(255,158,203,.4);
-  }
-  .ov-card p{
-    font-size:1rem;line-height:1.95;color:#d6cfe9;
-    margin:0 0 26px;text-align:left;
-  }
-  .ov-card .btn{opacity:1;animation:none;width:100%;}
-
-  /* ---------- chapter 2 canvas ---------- */
-  .canvas-chapter{overflow:hidden;}
-  #stars,#draw{position:absolute;inset:0;width:100%;height:100%;display:block;}
-  #stars{z-index:0;}
-  #draw{z-index:1;touch-action:none;}
-  .canvas-ui{
-    position:absolute;inset:0;z-index:2;
-    display:flex;flex-direction:column;justify-content:space-between;
-    padding:calc(34px + env(safe-area-inset-top)) 22px calc(30px + env(safe-area-inset-bottom));
-    pointer-events:none;
-  }
-  .canvas-ui .top{text-align:center;}
-  .canvas-ui .top h2{font-size:clamp(1.4rem,6vw,1.9rem);margin-bottom:10px;}
-  .canvas-ui .top p{
-    font-family:var(--sans);font-size:.82rem;line-height:1.8;
-    color:var(--muted);max-width:32ch;margin:0 auto;
-  }
-  .canvas-ui .bottom{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
-  .canvas-ui .btn{pointer-events:auto;opacity:1;animation:none;}
-  .hint{
-    font-family:var(--sans);font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;
-    color:var(--violet);opacity:.8;text-align:center;margin-top:14px;
-    transition:opacity 1s ease;
-  }
-  .hint.gone{opacity:0;}
-
-  /* ---------- chapter 3 name ---------- */
-  .name{
-    font-size:clamp(2.1rem,13.5vw,4.4rem);
-    letter-spacing:.10em;
-    margin:0 0 8px;
-    color:#fff;
-    text-shadow:0 0 40px rgba(180,120,255,.65), 0 0 90px rgba(255,140,200,.35);
-    line-height:1.1;
-  }
-  .name span{
-    display:inline-block;opacity:0;
-    transform:translateY(26px) scale(.86);
-  }
-  .chapter.active .name span{
-    animation:nameIn 1.15s cubic-bezier(.18,.85,.28,1) forwards;
-  }
-  @keyframes nameIn{
-    0%{opacity:0;transform:translateY(26px) scale(.86);filter:blur(12px);}
-    60%{opacity:1;filter:blur(0);}
-    100%{opacity:1;transform:none;filter:blur(0);}
-  }
-  .name-sub{
-    font-family:var(--sans);
-    font-size:.74rem;letter-spacing:.4em;text-transform:uppercase;
-    color:var(--pink);opacity:0;
-    margin:0 0 34px;
-  }
-  .chapter.active .name-sub{animation:fadeUp 1.4s ease 1.6s forwards;}
-  .name-msg{
-    font-size:1.02rem;line-height:2;color:#d4cce8;
-    max-width:30ch;margin:0 auto 40px;
-    opacity:0;
-  }
-  .chapter.active .name-msg{animation:fadeUp 1.5s ease 2.2s forwards;}
-
-  /* ---------- chapter 4 letter ---------- */
-  .letter-wrap{
-    justify-content:flex-start;text-align:left;
-    align-items:center;
-    padding-top:calc(64px + env(safe-area-inset-top));
-    padding-bottom:calc(64px + env(safe-area-inset-bottom));
-  }
-  .letter-inner{width:100%;max-width:600px;}
-  .letter-head{text-align:center;margin-bottom:40px;}
-  .letter{
-    font-size:1.03rem;line-height:2.05;color:#d3cbe6;
-  }
-  .letter p{
-    margin:0 0 24px;
-    opacity:0;transform:translateY(16px);
-    transition:opacity 1s ease, transform 1s cubic-bezier(.2,.8,.3,1);
-  }
-  .letter p.in{opacity:1;transform:none;}
-  .letter p.lead::first-letter{
-    font-size:2.6rem;line-height:1;
-    color:var(--pink);
-    float:left;padding:6px 12px 0 0;
-    text-shadow:0 0 22px rgba(255,158,203,.6);
-  }
-  .letter .sign{
-    margin-top:44px;
-    font-size:1.18rem;line-height:1.9;
-    color:#fff;text-align:right;
-    text-shadow:0 0 26px rgba(160,108,255,.5);
-  }
-  .letter-actions{text-align:center;margin-top:48px;}
-
-  /* ---------- chapter 5 finale ---------- */
-  .crown{
-    width:66px;height:auto;margin:0 auto 20px;display:block;
-    stroke:url(#crownGrad);fill:none;stroke-width:1.6;
-    stroke-linejoin:round;stroke-linecap:round;
-    filter:drop-shadow(0 0 16px rgba(200,140,255,.75));
-    opacity:0;
-  }
-  .chapter.active .crown{animation:fadeUp 1.6s ease .3s forwards;}
-  .queen{
-    font-size:clamp(1.9rem,10vw,3rem);
-    letter-spacing:.16em;
-    margin:0 0 30px;color:#fff;
-    text-shadow:0 0 40px rgba(255,158,203,.55), 0 0 100px rgba(160,108,255,.5);
-    opacity:0;
-  }
-  .chapter.active .queen{animation:fadeUp 1.6s ease .8s forwards;}
-  .heart{
-    width:64px;height:58px;margin:0 auto 40px;display:block;
-    stroke:rgba(255,158,203,.85);fill:none;stroke-width:1.1;
-    filter:drop-shadow(0 0 14px rgba(255,158,203,.55));
-    opacity:0;
-  }
-  .chapter.active .heart{
-    animation:heartIn 2s ease 1.5s forwards, beat 5.5s ease-in-out 3.5s infinite;
-  }
-  @keyframes heartIn{from{opacity:0;transform:scale(.9);}to{opacity:.92;transform:none;}}
-  @keyframes beat{0%,100%{transform:scale(1);opacity:.85;}50%{transform:scale(1.045);opacity:1;}}
-  .dua{
-    font-size:1.02rem;line-height:2.1;color:#d8d0ea;
-    max-width:32ch;margin:0 auto 38px;
-    opacity:0;
-  }
-  .chapter.active .dua{animation:fadeUp 1.8s ease 2.1s forwards;}
-  .final{
-    font-size:clamp(1rem,4.4vw,1.2rem);
-    line-height:2;color:#fff;max-width:30ch;margin:0 auto 14px;
-    text-shadow:0 0 30px rgba(160,108,255,.5);
-    opacity:0;
-  }
-  .chapter.active .final{animation:fadeUp 1.8s ease 3s forwards;}
-  .signature{
-    font-family:var(--sans);
-    font-size:.68rem;letter-spacing:.34em;text-transform:uppercase;
-    color:var(--muted);opacity:0;margin:44px 0 0;
-  }
-  .chapter.active .signature{animation:fadeUp 1.6s ease 3.9s forwards;}
-  .finale-actions{opacity:0;margin-top:38px;}
-  .chapter.active .finale-actions{animation:fadeUp 1.6s ease 4.4s forwards;}
-
-  @media (max-width:360px){
-    .relic{min-height:112px;padding:18px 8px 14px;}
-    .relic svg{width:34px;height:34px;}
-    .relic .rlabel{font-size:.56rem;letter-spacing:.18em;}
-  }
+.constellation-wrap{position:relative;height:clamp(330px,62vh,440px);border:1px solid #c9a4ff33;border-radius:22px;overflow:hidden;background:radial-gradient(ellipse at 50% 55%,#28173c 0%,#100d1b 55%,#090711 100%);box-shadow:inset 0 0 55px #0009}
+#constellationCanvas{width:100%;height:100%;display:block;touch-action:manipulation}
+.constellation-note{position:absolute;top:16px;left:10px;right:10px;text-align:center;font:10px system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#b9a8ce;pointer-events:none}
+.constellation-progress{position:absolute;bottom:15px;left:0;right:0;text-align:center;font:11px system-ui,sans-serif;letter-spacing:.12em;color:#b9a8ce;pointer-events:none}
+.star-message{min-height:76px;margin:14px 0 0;padding:17px 19px;border:1px solid #d2b5f322;border-radius:15px;background:#100c18a8;color:#e9def5;text-align:center;font-size:17px;line-height:1.7}
+.star-message em{color:#e7c4ff}
+.name-stage{position:relative;text-align:center;padding:55px 0 25px;overflow:hidden}
+.name-stage:before{content:"";position:absolute;width:220px;height:220px;left:50%;top:48%;transform:translate(-50%,-50%);background:radial-gradient(circle,#bd84ff24,transparent 68%);pointer-events:none}
+.name{font-size:clamp(36px,10vw,73px);letter-spacing:.13em;font-weight:normal;position:relative;margin:25px 0 30px;text-shadow:0 0 35px #bd8aff55}
+.name span{display:inline-block;animation:letterIn .8s both;animation-delay:calc(var(--i)*.08s)}
+@keyframes letterIn{from{opacity:0;transform:translateY(18px);filter:blur(8px)}to{opacity:1;transform:none;filter:blur(0)}}
+.name-copy{max-width:490px;margin:auto;font-size:19px;line-height:1.9;color:#e5d9ef}
+.letter-card{max-width:630px;margin:25px auto;background:linear-gradient(150deg,#fffaf008,#b38aff08);border:1px solid #d9c3ef2b;border-radius:20px;padding:clamp(23px,6vw,43px);box-shadow:0 18px 70px #0002}
+.letter-card p{font-size:18px;line-height:1.95;color:#e8deef;margin:0 0 20px}
+.letter-card p:first-child:first-letter{font-size:2.5em;float:left;line-height:.9;padding:7px 7px 0 0;color:#d3b2ff}
+.signature{color:#e6c8ff!important;font-style:italic;margin-top:30px!important}
+.final-scene{min-height:65vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;position:relative;padding:40px 0}
+.final-aura{width:140px;height:140px;border-radius:50%;border:1px solid #c49aff4c;display:grid;place-items:center;position:relative;margin-bottom:34px;box-shadow:0 0 80px #8f58cf1b,inset 0 0 40px #9e6ae81b;animation:breathe 5s ease-in-out infinite}
+.final-aura:before,.final-aura:after{content:"";position:absolute;border:1px solid #edb8dc35;border-radius:50%;inset:12px;transform:rotate(35deg) scaleX(.72)}
+.final-aura:after{inset:-13px;transform:rotate(-35deg) scaleX(.8);border-color:#bda0ec25}
+.final-aura span{font-size:35px;color:#f1c8e8;text-shadow:0 0 25px #e9a9d9}
+@keyframes breathe{50%{transform:scale(1.04);box-shadow:0 0 90px #8f58cf2c,inset 0 0 45px #9e6ae829}}
+.queen{font-size:clamp(42px,11vw,78px);letter-spacing:.03em;margin:0 0 18px;text-shadow:0 0 35px #b38aff50}
+.dua{font-size:19px;line-height:1.9;color:#e6d9f1;max-width:550px}
+.footer{font:10px system-ui,sans-serif;letter-spacing:.16em;color:#766987;text-align:center;margin-top:42px}
+@media(max-width:430px){.memories{gap:9px}.memory{padding:15px;min-height:137px}.memory strong{margin:12px 0 6px}.letter-card p{font-size:17px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main class="shell">
+  <div class="kicker">A small world for one beloved soul</div>
+  <div class="progress" aria-label="Experience progress"><span id="progress"></span></div>
 
-<div id="ambient"></div>
-<canvas id="motes"></canvas>
-
-<main id="app">
-
-  <!-- ============ INTRO ============ -->
-  <section class="chapter active" id="ch-intro">
-    <div class="chapter-inner">
-      <p class="intro-line">There is a thing I cannot name.</p>
-      <p class="intro-line">Not because I don't know what I feel.</p>
-      <p class="intro-line">Because the feeling became bigger than words.</p>
-      <button class="btn intro-btn" id="beginBtn">Enter</button>
-    </div>
+  <section class="chapter active" id="chapter0">
+    <div class="opening-mark" aria-hidden="true"><span>✳</span></div>
+    <p class="kicker">For Sarauniya · Hayati</p>
+    <h1>THE<br><span class="italic">UNWRITTEN</span><br>THING</h1>
+    <p class="lede">There is a thing I cannot name. Not because I don't know what I feel. Because the feeling became bigger than words.</p>
+    <div class="rule"></div>
+    <p class="muted center">So I made you a little place to wander through—not to explain everything, but to remember how something meaningful can begin in the most ordinary way.</p>
+    <div class="actions"><button class="primary" onclick="go(1)">Enter quietly&nbsp; ↗</button></div>
+    <p class="hint">Best experienced slowly. Nothing here needs to be rushed.</p>
   </section>
 
-  <!-- ============ CHAPTER 1 ============ -->
-  <section class="chapter" id="ch1">
-    <div class="chapter-inner">
-      <span class="ch-num">Chapter One</span>
-      <h2>Four Little Memories</h2>
-      <p class="ch-sub">Before we knew what we were becoming, there were only small, ordinary moments. Touch each one.</p>
-
-      <div class="relics" id="relics">
-        <button class="relic" data-key="notes" aria-label="The Notes">
-          <svg viewBox="0 0 48 48"><rect x="13" y="7" width="22" height="34" rx="3.5"/><path d="M19 17h10M19 23h10M19 29h6"/></svg>
-          <span class="rlabel">The Notes</span>
-        </button>
-
-        <button class="relic" data-key="message" aria-label="The Message">
-          <svg viewBox="0 0 48 48"><path d="M41 21a6 6 0 0 0-6-6H13a6 6 0 0 0-6 6v10a6 6 0 0 0 6 6h2v7l9-7h11a6 6 0 0 0 6-6z"/></svg>
-          <span class="rlabel">The Message</span>
-        </button>
-
-        <button class="relic" data-key="reassurance" aria-label="The Reassurance">
-          <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="3.5"/><circle cx="24" cy="24" r="10" opacity=".65"/><circle cx="24" cy="24" r="16.5" opacity=".35"/></svg>
-          <span class="rlabel">The Reassurance</span>
-        </button>
-
-        <button class="relic" data-key="unexpected" aria-label="The Unexpected">
-          <svg viewBox="0 0 48 48"><path d="M24 6c1.6 8.2 4.2 10.8 12 12-7.8 1.6-10.4 4.2-12 12-1.6-7.8-4.2-10.4-12-12 7.8-1.2 10.4-3.8 12-12z"/><path d="M37 32.5c.6 3 1.5 3.9 4.5 4.5-3 .6-3.9 1.5-4.5 4.5-.6-3-1.5-3.9-4.5-4.5 3-.6 3.9-1.5 4.5-4.5z" opacity=".6"/></svg>
-          <span class="rlabel">The Unexpected</span>
-        </button>
-      </div>
-
-      <p class="progress" id="memProgress">0 of 4 remembered</p>
-      <button class="btn locked" id="toCh2" disabled>Continue</button>
+  <section class="chapter" id="chapter1">
+    <p class="eyebrow">Chapter I · The beginning</p>
+    <h2>Four little memories.</h2>
+    <p class="muted">We were course mates, but we didn't really know each other. Life did not announce what it was about to begin. It gave us ordinary moments. Open each one, in any order.</p>
+    <div class="memories">
+      <button class="memory" data-memory="0" onclick="openMemory(0)"><span class="num">01 / A SMALL REQUEST</span><strong>The Notes</strong><small>Tap to remember ↗</small></button>
+      <button class="memory" data-memory="1" onclick="openMemory(1)"><span class="num">02 / A MESSAGE</span><strong>The Message</strong><small>Tap to remember ↗</small></button>
+      <button class="memory" data-memory="2" onclick="openMemory(2)"><span class="num">03 / A LITTLE CALM</span><strong>The Reassurance</strong><small>Tap to remember ↗</small></button>
+      <button class="memory" data-memory="3" onclick="openMemory(3)"><span class="num">04 / WITHOUT WARNING</span><strong>The Unexpected</strong><small>Tap to remember ↗</small></button>
     </div>
-
-    <div class="overlay" id="overlay">
-      <div class="ov-card">
-        <span class="ch-num" id="ovIndex">Memory</span>
-        <h3 id="ovTitle">Title</h3>
-        <p id="ovText">Text</p>
-        <button class="btn" id="ovClose">Close</button>
-      </div>
-    </div>
+    <div id="memoryReveal" class="reveal" aria-live="polite"><span class="eyebrow" id="memoryTitle"></span><div id="memoryText"></div></div>
+    <p id="memoryCount" class="hint">0 of 4 memories discovered</p>
+    <div class="actions"><button class="primary" id="memoryNext" onclick="go(2)" disabled style="opacity:.4">Continue when all are found</button></div>
   </section>
 
-  <!-- ============ CHAPTER 2 ============ -->
-  <section class="chapter canvas-chapter" id="ch2">
-    <canvas id="stars"></canvas>
-    <canvas id="draw"></canvas>
-    <div class="canvas-ui">
-      <div class="top">
-        <span class="ch-num">Chapter Two</span>
-        <h2>The Path Without Words</h2>
-        <p>Draw with your finger. Let the line go wherever it wants — it does not have to be straight.</p>
-        <p class="hint" id="hint">Touch the dark and move</p>
-      </div>
-      <div class="bottom">
-        <button class="btn ghost" id="clearBtn">Begin the path again</button>
-        <button class="btn" id="toCh3">Continue</button>
-      </div>
+  <section class="chapter" id="chapter2">
+    <p class="eyebrow">Chapter II · The little constellation</p>
+    <h2>Some lights find each other.</h2>
+    <p class="muted">Touch the scattered lights one by one. Each one holds a quiet thought. As you find them, they will connect into a constellation made just for this moment—not a map of where we must go, but a reminder that small things can belong to something beautiful.</p>
+    <div class="constellation-wrap" id="constellationWrap">
+      <canvas id="constellationCanvas" aria-label="Tap the glowing stars to discover the constellation"></canvas>
+      <div class="constellation-note" id="constellationNote" aria-live="polite">A few lights are waiting for you.</div>
+      <div class="constellation-progress" id="constellationProgress">0 / 7 lights discovered</div>
     </div>
+    <div class="star-message" id="starMessage" aria-live="polite">Tap any softly glowing star to begin.</div>
+    <div class="actions"><button class="quiet" onclick="resetConstellation()">Let the stars rest</button><button class="primary" onclick="go(3)">See what they reveal ↗</button></div>
+    <p class="hint">A little constellation, made of seven small reminders.</p>
   </section>
 
-  <!-- ============ CHAPTER 3 ============ -->
-  <section class="chapter" id="ch3">
-    <div class="chapter-inner">
-      <span class="ch-num">Chapter Three</span>
-      <h2 class="name" id="nameReveal"></h2>
-      <p class="name-sub">Hayati &nbsp;·&nbsp; My Queen</p>
-      <p class="name-msg">Your name stopped being only a name a long time ago. It became a feeling I carry quietly through my days, and a place inside my heart where only you live.</p>
-      <button class="btn" id="toCh4">Read the letter</button>
+  <section class="chapter" id="chapter3">
+    <p class="eyebrow">Chapter III · Her name</p>
+    <div class="name-stage">
+      <div class="kicker">A name that became a feeling</div>
+      <h2 class="name" id="nameReveal" aria-label="Sarauniya"></h2>
+      <p class="name-copy">Sarauniya. Somewhere along the way, your name became more than a name to me. It became a feeling I carry quietly, and a meaningful place in my heart—a place that reminds me to be grateful for the unexpected.</p>
     </div>
+    <div class="rule"></div>
+    <p class="muted center">And because a feeling deserves more than a beautiful screen, there are a few words I wanted you to have.</p>
+    <div class="actions"><button class="primary" onclick="go(4)">Read what I mean ↗</button></div>
   </section>
 
-  <!-- ============ CHAPTER 4 ============ -->
-  <section class="chapter" id="ch4">
-    <div class="chapter-inner letter-wrap">
-      <div class="letter-inner">
-        <div class="letter-head">
-          <span class="ch-num">Chapter Four</span>
-          <h2>A Letter</h2>
-        </div>
-
-        <div class="letter" id="letterBody">
-          <p class="lead">Sarauniya, I don't know exactly when you stopped being someone I shared a course with and became someone I think about before I sleep. It happened quietly. It happened the way light arrives in a room — you never notice the moment, only that everything looks different afterwards.</p>
-
-          <p>We were course mates who barely knew each other. Then a group assignment put us in the same space, and somehow, in the middle of all that work, we started to become close. I asked you for your notes because I hadn't copied mine and I only wanted to photograph them. Such a small thing. I didn't know I was reaching for something much bigger.</p>
-
-          <p>Then came the message about your stolen bag. I remember telling you to stay calm, and reminding you that Allah knows best. I wasn't trying to sound wise. I just didn't want your heart to be heavy on its own. Looking back, I think that was the first time I realised how much your peace had started to matter to me.</p>
-
-          <p>And you — you encouraged me to study for STA121. You pushed me when I was tired, and reminded me what I was working for. You may think that was small. It wasn't. Someone who cares about your future is telling you something without saying it out loud.</p>
-
-          <p>Your care means more to me than I know how to explain. Not the loud kind — the quiet kind. The kind that checks in. The kind that says "go and read." The kind that stays.</p>
-
-          <p>I appreciate who you are. Your patience. Your softness. The strength that shows up even when you are tired. The way you carry your faith. I don't admire you only for what you give me — I admire you for who you are when nobody is watching.</p>
-
-          <p>I hope we keep growing together: in patience, in honesty, in understanding, in kindness, and in faith. I hope we learn to disagree gently and to listen properly. I hope we both become better people for having known each other, whether the road stays smooth or not.</p>
-
-          <p>And I pray — sincerely, quietly — that if Allah writes marriage for us, insha'Allah, He makes our home one of sakinah. Full of mercy. Full of respect. Full of laughter. Full of barakah. I am not asking for a perfect life. I am asking for something real, something lasting, something pleasing to Him.</p>
-
-          <p>We can start small. We don't need everything figured out today. I believe two people can begin with very little and still build something beautiful — if Allah is in it, and if they are honest with each other.</p>
-
-          <p class="sign">With love,<br>Muhammad 💜</p>
-        </div>
-
-        <div class="letter-actions">
-          <button class="btn" id="toCh5">One more thing</button>
-        </div>
-      </div>
+  <section class="chapter" id="chapter4">
+    <p class="eyebrow">Chapter IV · A personal letter</p>
+    <h2>For my Hayati, from my heart.</h2>
+    <div class="letter-card">
+      <p>My Sarauniya,</p>
+      <p>Sometimes I think about how unexpectedly we became close. We were course mates, but we didn't really know each other. Then came a group assignment, and a small request: I asked you for your notes because I hadn't copied mine and wanted to photograph yours. It was such an ordinary thing. I couldn't have known then how much that little moment would come to mean to me.</p>
+      <p>Later, you messaged me to tell me your bag had been stolen. I tried to reassure you—to stay calm and remember that Allah knows best. Looking back, I find it beautiful that something as ordinary as notes, and a moment when you needed reassurance, became part of the beginning of our story.</p>
+      <p>I also remember how you encouraged me to study for STA121. That encouragement matters. The way you care, the way you try to help, and the person you are beyond any single moment are things I appreciate more than I may always know how to say.</p>
+      <p>I don't want to pretend that I know every page of the future. I don't. What I do know is that I am grateful our paths crossed, and I want to keep meeting what comes with patience, honesty, understanding, kindness, and faith. I hope we keep learning how to listen to each other, how to apologise when we need to, how to make room for one another, and how to choose what is good even when it takes effort.</p>
+      <p>And if Allah writes marriage for us, insha'Allah, I pray He blesses our home with sakinah, mercy, respect, laughter, and barakah. Not a life that never has difficult days, but a home where we face them with gentleness, remember Allah, and keep trying to do right by each other. I leave that future in His wisdom, and ask Him to guide us toward whatever is best.</p>
+      <p>We don't need to begin with everything figured out. We can start small—with sincere intentions, little acts of care, honest conversations, and du'a—and still build something beautiful together, one good choice at a time.</p>
+      <p>Thank you for being you, Hayati. Thank you for the encouragement you've given me and for the unexpected way you became someone dear to me. I hope this little experience reminds you that you are appreciated—not as an idea, not as a perfect person, but as the real person you are.</p>
+      <p class="signature">With love, Muhammad 💜</p>
     </div>
+    <div class="actions"><button class="primary" onclick="go(5)">One last thing… ↗</button></div>
   </section>
 
-  <!-- ============ CHAPTER 5 ============ -->
-  <section class="chapter" id="ch5">
-    <div class="chapter-inner">
-      <span class="ch-num">Chapter Five</span>
-
-      <svg class="crown" viewBox="0 0 64 44" aria-hidden="true">
-        <defs>
-          <linearGradient id="crownGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#b98cff"/>
-            <stop offset="100%" stop-color="#ff9ecb"/>
-          </linearGradient>
-        </defs>
-        <path d="M7 33 L11 13 L22 23 L32 7 L42 23 L53 13 L57 33 Z"/>
-        <path d="M8 38 h48"/>
-      </svg>
-
-      <h2 class="queen">MY QUEEN</h2>
-
-      <svg class="heart" viewBox="0 0 32 30" aria-hidden="true">
-        <path d="M16 27.4C16 27.4 3 18.8 3 10.9 3 6.5 6.4 3 10.6 3c2.6 0 4.6 1.3 5.4 3.3C16.8 4.3 18.8 3 21.4 3 25.6 3 29 6.5 29 10.9 29 18.8 16 27.4 16 27.4z"/>
-      </svg>
-
-      <p class="dua">Ya Allah, protect her heart. Ease every worry she carries quietly. Place goodness on her path and let her never walk it alone. Grant her peace in her chest, light in her days, and a future better than anything she has ever prayed for. Ameen.</p>
-
-      <p class="final">There is a thing I cannot name.<br>Now you know what it is.</p>
-
-      <div class="finale-actions">
-        <button class="btn ghost" id="replayBtn">Begin again</button>
-      </div>
-
-      <p class="signature">For Sarauniya &nbsp;·&nbsp; From Muhammad</p>
+  <section class="chapter" id="chapter5">
+    <div class="final-scene">
+      <p class="eyebrow">Chapter V · A quiet tribute</p>
+      <div class="final-aura" aria-hidden="true"><span>♡</span></div>
+      <h2 class="queen">MY QUEEN <span aria-hidden="true">♛</span></h2>
+      <p class="italic" style="font-size:20px">My Sarauniya. My Hayati.</p>
+      <div class="rule"></div>
+      <p class="dua">Ya Allah, protect her heart, ease the worries she carries quietly, and place goodness in her path. Give her peace when life feels heavy, strength when she feels tired, people who treat her with kindness, and guidance that brings her closer to what is good. Guard her dignity and faith, open doors that are خير for her, and grant her joy that brings gratitude to her heart. Ameen.</p>
+      <p class="muted center" style="max-width:470px;margin-top:20px">You don't have to be extraordinary every day to be deeply appreciated. Sometimes the most beautiful things begin quietly—and keep becoming meaningful.</p>
+      <div class="actions"><button class="quiet" onclick="go(0)">Return to the beginning</button></div>
     </div>
+    <p class="footer">MADE WITH CARE · FOR SARAUNIYA, ALWAYS WITH DU'A</p>
   </section>
-
 </main>
-
 <script>
 (function(){
-  "use strict";
-
-  /* ---------- ambient stars ---------- */
-  var ambient = document.getElementById('ambient');
-  var starFrag = document.createDocumentFragment();
-  for (var i = 0; i < 80; i++) {
-    var s = document.createElement('div');
-    s.className = 'star';
-    var size = (Math.random() * 1.9 + 0.6).toFixed(2);
-    s.style.width = size + 'px';
-    s.style.height = size + 'px';
-    s.style.left = (Math.random() * 100).toFixed(2) + '%';
-    s.style.top = (Math.random() * 100).toFixed(2) + '%';
-    s.style.animationDelay = (Math.random() * 5).toFixed(2) + 's';
-    s.style.animationDuration = (3.5 + Math.random() * 4).toFixed(2) + 's';
-    starFrag.appendChild(s);
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // A sparse, slow-moving field of light—not planets, a garden, or a heart animation.
+  const sky=document.getElementById('sky'), ctx=sky.getContext('2d');
+  let stars=[], sw=0,sh=0,dpr=1;
+  function sizeSky(){dpr=Math.min(window.devicePixelRatio||1,2);sw=innerWidth;sh=innerHeight;sky.width=sw*dpr;sky.height=sh*dpr;sky.style.width=sw+'px';sky.style.height=sh+'px';ctx.setTransform(dpr,0,0,dpr,0,0);stars=Array.from({length:Math.min(90,Math.floor(sw*sh/9500))},()=>({x:Math.random()*sw,y:Math.random()*sh,r:Math.random()*1.25+.2,a:Math.random()*.5+.12,p:Math.random()*6.28,s:Math.random()*.006+.002}));}
+  function drawSky(){ctx.clearRect(0,0,sw,sh);for(const s of stars){s.p+=s.s;const alpha=s.a*(.65+.35*Math.sin(s.p));ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle='rgba(220,198,255,'+alpha+')';ctx.fill();}if(!reduceMotion)requestAnimationFrame(drawSky);}
+  sizeSky();drawSky();window.addEventListener('resize',sizeSky);
+  const total=5, chapters=[...document.querySelectorAll('.chapter')], progress=document.getElementById('progress');
+  window.go=function(n){chapters.forEach((c,i)=>{c.classList.toggle('active',i===n);c.setAttribute('aria-hidden',i!==n?'true':'false')});progress.style.width=(n/total*100)+'%';window.scrollTo({top:0,behavior:reduceMotion?'auto':'smooth'});if(n===2){layoutConstellation();}if(n===3)revealName();};
+  const memoryData=[
+    ['The Notes','We were course mates, but we did not really know each other. A group assignment connected us, and I asked you for your notes because I had not copied mine and wanted to photograph them. A small, practical request—one I never expected to remember so tenderly.'],
+    ['The Message','Later, you messaged me to tell me your bag had been stolen. It was an unexpected moment, and you chose to reach out to me. I could not fix everything, but I could try to be there with reassurance.'],
+    ['The Reassurance','I reminded you to remain calm and remember that Allah knows best. Sometimes care begins simply: by helping someone breathe through a difficult moment and reminding them they do not have to carry it in panic.'],
+    ['The Unexpected','Neither of us knew these ordinary moments would become the beginning of something meaningful. There was no grand announcement—just a group assignment, some notes, a message, and two people who slowly became less unfamiliar.']
+  ];
+  const found=new Set();
+  window.openMemory=function(i){const reveal=document.getElementById('memoryReveal');document.getElementById('memoryTitle').textContent=memoryData[i][0];document.getElementById('memoryText').textContent=memoryData[i][1];reveal.classList.add('show');document.querySelectorAll('.memory').forEach((b,j)=>{if(j===i){b.classList.add('done');b.querySelector('small').textContent='Discovered ✓'}});found.add(i);document.getElementById('memoryCount').textContent=found.size+' of 4 memories discovered';const next=document.getElementById('memoryNext');if(found.size===4){next.disabled=false;next.style.opacity='1';next.textContent='All four found · Continue ↗';} };
+  // Interactive constellation: tap seven stars; lines and a small floral-heart silhouette emerge gradually.
+  const cc=document.getElementById('constellationCanvas'), cctx=cc.getContext('2d');
+  const starThoughts=[
+    'A beginning can be so ordinary that you only recognise its meaning later.',
+    'A small request for notes became one of the first threads between us.',
+    'Sometimes a message is not just information; it is a chance to show care.',
+    'I hoped reassurance could bring a little calm when your day felt difficult.',
+    'Your encouragement about STA121 stayed with me more than you may realise.',
+    'The best things between people grow through patience, honesty, and kindness.',
+    'And whatever the future holds, I am grateful that our paths crossed.'
+  ];
+  const coords=[[.5,.18],[.27,.30],[.72,.32],[.17,.52],[.82,.54],[.35,.70],[.63,.76]];
+  let lit=new Set(), cw=0,ch=0,ratio=1, twinkles=[], constellationRAF=0;
+  function layoutConstellation(){
+    const r=cc.getBoundingClientRect(); if(!r.width||!r.height)return;
+    ratio=Math.min(devicePixelRatio||1,2);cw=r.width;ch=r.height;
+    cc.width=Math.round(cw*ratio);cc.height=Math.round(ch*ratio);
+    cctx.setTransform(ratio,0,0,ratio,0,0);
+    twinkles=Array.from({length:38},()=>({x:Math.random()*cw,y:Math.random()*ch,r:.4+Math.random()*1.2,a:.12+Math.random()*.35,p:Math.random()*6.28}));
+    drawConstellation();
   }
-  ambient.appendChild(starFrag);
-
-  /* ---------- floating motes ---------- */
-  var motes = document.getElementById('motes');
-  var mctx = motes.getContext('2d');
-  var mList = [], mw = 0, mh = 0, mdpr = 1;
-
-  function sizeMotes() {
-    mdpr = Math.min(window.devicePixelRatio || 1, 2);
-    mw = window.innerWidth;
-    mh = window.innerHeight;
-    motes.width = Math.floor(mw * mdpr);
-    motes.height = Math.floor(mh * mdpr);
-    motes.style.width = mw + 'px';
-    motes.style.height = mh + 'px';
-    mctx.setTransform(mdpr, 0, 0, mdpr, 0, 0);
-  }
-  function buildMotes() {
-    mList = [];
-    var n = window.innerWidth < 400 ? 18 : 26;
-    for (var i = 0; i < n; i++) {
-      mList.push({
-        x: Math.random() * mw,
-        y: Math.random() * mh,
-        r: 0.7 + Math.random() * 1.7,
-        sp: 0.10 + Math.random() * 0.32,
-        a: 0.10 + Math.random() * 0.42,
-        p: Math.random() * Math.PI * 2,
-        hue: 262 + Math.random() * 58
-      });
+  function starPoint(i){return{x:coords[i][0]*cw,y:coords[i][1]*ch};}
+  function drawConstellation(){
+    if(!cw||!ch)return;
+    cctx.clearRect(0,0,cw,ch);
+    // quiet background dust
+    twinkles.forEach(t=>{t.p+=.018;cctx.beginPath();cctx.arc(t.x,t.y,t.r,0,Math.PI*2);cctx.fillStyle='rgba(220,198,255,'+(t.a*(.7+.3*Math.sin(t.p)))+')';cctx.fill();});
+    // Fine links appear only between discovered stars.
+    cctx.save();cctx.lineWidth=1;cctx.strokeStyle='rgba(199,155,255,.44)';cctx.shadowColor='#b58aff';cctx.shadowBlur=8;
+    const order=[0,1,3,5,6,4,2,0];
+    for(let j=1;j<order.length;j++){const a=order[j-1],b=order[j];if(lit.has(a)&&lit.has(b)){const p=starPoint(a),q=starPoint(b);cctx.beginPath();cctx.moveTo(p.x,p.y);cctx.lineTo(q.x,q.y);cctx.stroke();}}
+    cctx.restore();
+    // A restrained bloom appears when enough stars are found: petals are luminous strokes, not a cartoon heart.
+    if(lit.size>=4){
+      const cx=cw*.5,cy=ch*.48;
+      cctx.save();cctx.translate(cx,cy);cctx.rotate(-.18);cctx.strokeStyle='rgba(255,159,211,'+(lit.size>=7?.62:.22)+')';cctx.lineWidth=1.1;cctx.shadowColor='#d08aff';cctx.shadowBlur=12;
+      const petals=lit.size>=7?8:4;
+      for(let i=0;i<petals;i++){cctx.save();cctx.rotate(i*Math.PI*2/petals);cctx.beginPath();cctx.moveTo(0,0);cctx.bezierCurveTo(-cw*.06,-ch*.05,-cw*.09,-ch*.16,0,-ch*.18);cctx.bezierCurveTo(cw*.09,-ch*.16,cw*.06,-ch*.05,0,0);cctx.stroke();cctx.restore();}
+      cctx.restore();
     }
-  }
-  function motesLoop() {
-    mctx.clearRect(0, 0, mw, mh);
-    for (var i = 0; i < mList.length; i++) {
-      var m = mList[i];
-      m.y -= m.sp;
-      m.p += 0.008;
-      if (m.y < -12) { m.y = mh + 12; m.x = Math.random() * mw; }
-      var x = m.x + Math.sin(m.p) * 9;
-      var col = 'hsl(' + m.hue + ',95%,78%)';
-      mctx.beginPath();
-      mctx.globalAlpha = m.a;
-      mctx.fillStyle = col;
-      mctx.shadowColor = col;
-      mctx.shadowBlur = 12;
-      mctx.arc(x, m.y, m.r, 0, Math.PI * 2);
-      mctx.fill();
-    }
-    mctx.globalAlpha = 1;
-    mctx.shadowBlur = 0;
-    requestAnimationFrame(motesLoop);
-  }
-  sizeMotes();
-  buildMotes();
-  requestAnimationFrame(motesLoop);
-
-  window.addEventListener('resize', function () {
-    sizeMotes();
-    buildMotes();
-    sizeStars();
-    sizeDraw();
-  });
-
-  /* ---------- chapter engine ---------- */
-  var chapters = Array.prototype.slice.call(document.querySelectorAll('.chapter'));
-
-  function show(id) {
-    var target = document.getElementById(id);
-    if (!target) return;
-    for (var i = 0; i < chapters.length; i++) {
-      chapters[i].classList.toggle('active', chapters[i] === target);
-    }
-    target.scrollTop = 0;
-    if (id === 'ch2') {
-      window.requestAnimationFrame(function () {
-        sizeStars();
-        sizeDraw();
-        drawStars();
-      });
-    }
-  }
-
-  document.getElementById('beginBtn').addEventListener('click', function () { show('ch1'); });
-
-  /* ---------- chapter 1: memories ---------- */
-  var memories = {
-    notes: {
-      index: 'Memory One',
-      title: 'The Notes',
-      text: 'We were course mates who barely knew each other. Then a group assignment put us on the same page — almost literally. I asked you for your notes because I had not copied mine, and I only wanted to photograph them. That was all. Or so I told myself. An ordinary request, made in an ordinary moment, that quietly became the first line of everything.'
-    },
-    message: {
-      index: 'Memory Two',
-      title: 'The Message',
-      text: 'Then one day, a message came from you. Your bag had been stolen. You told me what happened, and even through words on a screen I could feel how unsettled you were. We were still just two people who shared a course. But your message reached me, and I answered. That is how it began.'
-    },
-    reassurance: {
-      index: 'Memory Three',
-      title: 'The Reassurance',
-      text: 'I told you to stay calm. I reminded you that Allah knows best. I did not say anything clever or impressive — I only wanted your heart to be still. You probably did not think about it again. But that small moment stayed with me, because it was the first time I felt I wanted to carry a little of your worry for you.'
-    },
-    unexpected: {
-      index: 'Memory Four',
-      title: 'The Unexpected',
-      text: 'Neither of us knew. Not in that classroom, not in that message, not in those quiet words of comfort. We did not know that Allah was already writing something out of pieces we thought were nothing at all. Ordinary moments. The beginning of something meaningful.'
-    }
-  };
-
-  var found = {};
-  var relics = Array.prototype.slice.call(document.querySelectorAll('.relic'));
-  var overlay = document.getElementById('overlay');
-  var ovIndex = document.getElementById('ovIndex');
-  var ovTitle = document.getElementById('ovTitle');
-  var ovText = document.getElementById('ovText');
-  var ovClose = document.getElementById('ovClose');
-  var memProgress = document.getElementById('memProgress');
-  var toCh2 = document.getElementById('toCh2');
-  var lastFocused = null;
-
-  function openMemory(key, el) {
-    var m = memories[key];
-    if (!m) return;
-    lastFocused = el;
-    ovIndex.textContent = m.index;
-    ovTitle.textContent = m.title;
-    ovText.textContent = m.text;
-    overlay.classList.add('open');
-    ovClose.focus();
-    if (!found[key]) {
-      found[key] = true;
-      el.classList.add('found');
-      updateProgress();
-    }
-  }
-
-  function closeMemory() {
-    overlay.classList.remove('open');
-    if (lastFocused && lastFocused.focus) lastFocused.focus();
-  }
-
-  function updateProgress() {
-    var count = Object.keys(found).length;
-    if (count >= 4) {
-      memProgress.textContent = 'All four remembered';
-      memProgress.classList.add('done');
-      toCh2.classList.remove('locked');
-      toCh2.disabled = false;
-    } else {
-      memProgress.textContent = count + ' of 4 remembered';
-    }
-  }
-
-  relics.forEach(function (el) {
-    el.addEventListener('click', function () { openMemory(el.getAttribute('data-key'), el); });
-  });
-  ovClose.addEventListener('click', closeMemory);
-  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeMemory(); });
-  toCh2.addEventListener('click', function () { show('ch2'); });
-
-  /* ---------- chapter 2: drawing ---------- */
-  var starsCanvas = document.getElementById('stars');
-  var sctx = starsCanvas.getContext('2d');
-  var drawCanvas = document.getElementById('draw');
-  var dctx = drawCanvas.getContext('2d');
-  var cw = 0, ch = 0, cdpr = 1;
-
-  var starSeeds = [];
-  for (var k = 0; k < 130; k++) {
-    starSeeds.push({
-      x: Math.random(),
-      y: Math.random(),
-      r: 0.4 + Math.random() * 1.5,
-      a: 0.15 + Math.random() * 0.75,
-      hue: 250 + Math.random() * 90
+    coords.forEach((_,i)=>{const p=starPoint(i),active=lit.has(i),pulse=1+Math.sin(Date.now()/500+i)*.12;
+      cctx.save();cctx.shadowColor=active?'#ffb7e3':'#b58aff';cctx.shadowBlur=active?22:10;
+      cctx.beginPath();cctx.arc(p.x,p.y,active?4.1:3.1*pulse,0,Math.PI*2);cctx.fillStyle=active?'#ffe4f5':'rgba(210,180,255,.78)';cctx.fill();
+      if(!active){cctx.beginPath();cctx.arc(p.x,p.y,10*pulse,0,Math.PI*2);cctx.strokeStyle='rgba(195,155,255,.23)';cctx.lineWidth=1;cctx.stroke();}
+      cctx.restore();
     });
+    if(!reduceMotion)constellationRAF=requestAnimationFrame(drawConstellation);
   }
-
-  function sizeStars() {
-    var rect = starsCanvas.parentElement.getBoundingClientRect();
-    cw = rect.width || window.innerWidth;
-    ch = rect.height || window.innerHeight;
-    cdpr = Math.min(window.devicePixelRatio || 1, 2);
-
-    starsCanvas.width = Math.floor(cw * cdpr);
-    starsCanvas.height = Math.floor(ch * cdpr);
-    sctx.setTransform(cdpr, 0, 0, cdpr, 0, 0);
-
-    drawCanvas.width = Math.floor(cw * cdpr);
-    drawCanvas.height = Math.floor(ch * cdpr);
-    dctx.setTransform(cdpr, 0, 0, cdpr, 0, 0);
-  }
-
-  function drawStars() {
-    if (!cw || !ch) return;
-    sctx.clearRect(0, 0, cw, ch);
-    var g = sctx.createRadialGradient(cw * 0.5, ch * 0.15, 0, cw * 0.5, ch * 0.15, ch * 0.9);
-    g.addColorStop(0, 'rgba(60,28,110,0.55)');
-    g.addColorStop(0.55, 'rgba(18,8,36,0.55)');
-    g.addColorStop(1, 'rgba(5,3,11,0.9)');
-    sctx.fillStyle = g;
-    sctx.fillRect(0, 0, cw, ch);
-
-    for (var i = 0; i < starSeeds.length; i++) {
-      var st = starSeeds[i];
-      var col = 'hsl(' + st.hue + ',85%,82%)';
-      sctx.beginPath();
-      sctx.globalAlpha = st.a;
-      sctx.fillStyle = col;
-      sctx.shadowColor = col;
-      sctx.shadowBlur = 8;
-      sctx.arc(st.x * cw, st.y * ch, st.r, 0, Math.PI * 2);
-      sctx.fill();
-    }
-    sctx.globalAlpha = 1;
-    sctx.shadowBlur = 0;
-  }
-
-  var drawing = false, lastPt = null, dist = 0;
-
-  function getPos(e) {
-    var r = drawCanvas.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
-  }
-
-  function paintSegment(a, b) {
-    var d = Math.sqrt((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y));
-    dist += d;
-    var hue = 272 + 40 * Math.sin(dist * 0.011);
-    var col = 'hsl(' + hue.toFixed(1) + ',95%,73%)';
-
-    dctx.lineCap = 'round';
-    dctx.lineJoin = 'round';
-    dctx.shadowColor = col;
-
-    dctx.globalAlpha = 0.95;
-    dctx.shadowBlur = 18;
-    dctx.lineWidth = 5.5;
-    dctx.strokeStyle = col;
-    dctx.beginPath();
-    dctx.moveTo(a.x, a.y);
-    dctx.lineTo(b.x, b.y);
-    dctx.stroke();
-
-    dctx.globalAlpha = 0.30;
-    dctx.shadowBlur = 36;
-    dctx.lineWidth = 13;
-    dctx.beginPath();
-    dctx.moveTo(a.x, a.y);
-    dctx.lineTo(b.x, b.y);
-    dctx.stroke();
-
-    dctx.globalAlpha = 1;
-    dctx.shadowBlur = 0;
-  }
-
-  function paintDot(p) {
-    var col = 'hsl(280,95%,75%)';
-    dctx.beginPath();
-    dctx.globalAlpha = 0.95;
-    dctx.fillStyle = col;
-    dctx.shadowColor = col;
-    dctx.shadowBlur = 20;
-    dctx.arc(p.x, p.y, 3.2, 0, Math.PI * 2);
-    dctx.fill();
-    dctx.globalAlpha = 1;
-    dctx.shadowBlur = 0;
-  }
-
-  var hintEl = document.getElementById('hint');
-
-  drawCanvas.addEventListener('pointerdown', function (e) {
-    e.preventDefault();
-    drawing = true;
-    if (drawCanvas.setPointerCapture) {
-      try { drawCanvas.setPointerCapture(e.pointerId); } catch (err) {}
-    }
-    lastPt = getPos(e);
-    paintDot(lastPt);
-    hintEl.classList.add('gone');
-  });
-
-  drawCanvas.addEventListener('pointermove', function (e) {
-    if (!drawing) return;
-    e.preventDefault();
-    var p = getPos(e);
-    if (lastPt) paintSegment(lastPt, p);
-    lastPt = p;
-  });
-
-  function endDraw() { drawing = false; lastPt = null; }
-  drawCanvas.addEventListener('pointerup', endDraw);
-  drawCanvas.addEventListener('pointercancel', endDraw);
-  drawCanvas.addEventListener('pointerleave', function () { if (drawing) endDraw(); });
-
-  document.getElementById('clearBtn').addEventListener('click', function () {
-    dctx.clearRect(0, 0, cw, ch);
-    dist = 0;
-  });
-  document.getElementById('toCh3').addEventListener('click', function () { show('ch3'); });
-
-  /* ---------- chapter 3: name ---------- */
-  var nameEl = document.getElementById('nameReveal');
-  var nameStr = 'SARAUNIYA';
-  var html = '';
-  for (var n = 0; n < nameStr.length; n++) {
-    html += '<span style="animation-delay:' + (n * 0.13).toFixed(2) + 's">' + nameStr.charAt(n) + '</span>';
-  }
-  nameEl.innerHTML = html;
-
-  document.getElementById('toCh4').addEventListener('click', function () { show('ch4'); });
-
-  /* ---------- chapter 4: letter reveal ---------- */
-  var ch4 = document.getElementById('ch4');
-  var letterParas = Array.prototype.slice.call(document.querySelectorAll('#letterBody p'));
-  var letterObserver = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('in');
-        letterObserver.unobserve(entry.target);
-      }
-    });
-  }, { root: ch4, threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
-
-  letterParas.forEach(function (p, idx) {
-    p.style.transitionDelay = Math.min(idx * 0.04, 0.24) + 's';
-    letterObserver.observe(p);
-  });
-
-  document.getElementById('toCh5').addEventListener('click', function () { show('ch5'); });
-
-  /* ---------- chapter 5: replay ---------- */
-  document.getElementById('replayBtn').addEventListener('click', function () {
-    found = {};
-    relics.forEach(function (r) { r.classList.remove('found'); });
-    memProgress.textContent = '0 of 4 remembered';
-    memProgress.classList.remove('done');
-    toCh2.classList.add('locked');
-    toCh2.disabled = true;
-    dctx.clearRect(0, 0, cw, ch);
-    dist = 0;
-    hintEl.classList.remove('gone');
-    letterParas.forEach(function (p) { p.classList.remove('in'); letterObserver.observe(p); });
-    ch4.scrollTop = 0;
-    show('ch-intro');
-  });
-
-  /* ---------- initial sizing ---------- */
-  window.requestAnimationFrame(function () {
-    sizeStars();
-    drawStars();
-  });
-
-  window.addEventListener('orientationchange', function () {
-    setTimeout(function () {
-      sizeStars();
-      drawStars();
-    }, 260);
-  });
-
+  function pickStar(e){const r=cc.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;let best=-1,dist=Infinity;coords.forEach((_,i)=>{if(lit.has(i))return;const p=starPoint(i),d=Math.hypot(x-p.x,y-p.y);if(d<dist){dist=d;best=i;}});if(best>=0&&dist<Math.max(30,cw*.095)){lit.add(best);document.getElementById('starMessage').innerHTML='<em>Light '+lit.size+' of 7</em><br>'+starThoughts[best];document.getElementById('constellationProgress').textContent=lit.size+' / 7 lights discovered';document.getElementById('constellationNote').textContent=lit.size===7?'A little shape, made from little moments.':'Keep finding the lights';if(lit.size===7)document.getElementById('starMessage').innerHTML='<em>Look what the little lights became.</em><br>Not a promise about the future—just a beautiful reminder that ordinary moments can connect into something worth caring for.';if(reduceMotion)drawConstellation();}}
+  cc.addEventListener('pointerup',pickStar);
+  window.resetConstellation=function(){lit.clear();document.getElementById('starMessage').textContent='Tap any softly glowing star to begin.';document.getElementById('constellationProgress').textContent='0 / 7 lights discovered';document.getElementById('constellationNote').textContent='A few lights are waiting for you.';drawConstellation();};
+  function initConstellation(){layoutConstellation();}
+  let nameDone=false;function revealName(){if(nameDone)return;nameDone=true;const el=document.getElementById('nameReveal');[...'SARAUNIYA'].forEach((letter,i)=>{const s=document.createElement('span');s.textContent=letter;s.style.setProperty('--i',i);el.appendChild(s);});}
+  window.addEventListener('resize',()=>{if(document.getElementById('chapter2').classList.contains('active'))layoutConstellation();});
+  initConstellation();
+  go(0);
 })();
 </script>
 </body>
 </html>
-"""
-
-paths = []
-for p in ["/mnt/user-data/outputs/the_unwritten_thing_for_sarauniya.html",
-          os.path.join(os.getcwd(), "the_unwritten_thing_for_sarauniya.html")]:
-    try:
-        d = os.path.dirname(p)
-        if d:
-            os.makedirs(d, exist_ok=True)
-        with open(p, "w", encoding="utf-8") as f:
-            f.write(html)
-        paths.append(p)
-    except Exception as e:
-        print("skip", p, e)
-
-for p in paths:
-    print(p, os.path.getsize(p), "bytes")
-
-# quick sanity checks
-checks = {
-    "SARAUNIYA": "SARAUNIYA" in html,
-    "Muhammad signature": "With love,<br>Muhammad" in html,
-    "STA121": "STA121" in html,
-    "opening line": "There is a thing I cannot name." in html,
-    "ch5": "MY QUEEN" in html,
-}
-print(checks)
